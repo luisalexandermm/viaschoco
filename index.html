@@ -539,7 +539,7 @@ function App() {
           <p className="text-lg md:text-2xl text-gray-100 drop-shadow mb-4">Información actualizada sobre el estado de las carreteras</p>
         </div>
         {/* Menú flotante sticky */}
-        <nav className="fixed top-0 left-0 w-full bg-white/90 shadow-lg backdrop-blur-md z-50 flex items-center justify-between px-4 py-3 md:px-12 md:py-4" style={{borderBottom: '2px solid #2563eb'}}>
+        <nav className="fixed top-0 left-0 w-full bg-white/90 shadow-lg backdrop-blur-md flex items-center justify-between px-4 py-3 md:px-12 md:py-4" style={{borderBottom: '2px solid #2563eb', zIndex: 10000}}>
           <div className="flex items-center gap-3">
             <span className="font-black text-xl md:text-2xl text-blue-700">Vías del Chocó</span>
           </div>
@@ -554,7 +554,7 @@ function App() {
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M4.75 6.75h14.5M4.75 12h14.5M4.75 17.25h14.5" /></svg>
             </button>
             {showMenu && (
-              <div className="absolute top-16 left-0 w-full bg-white shadow-lg flex flex-col gap-2 p-4 z-50">
+              <div className="absolute top-16 left-0 w-full bg-white shadow-lg flex flex-col gap-2 p-4" style={{zIndex: 10000}}>
                 <button className={`font-bold px-4 py-2 rounded-lg transition ${activeTab==='all' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>{setActiveTab('all');setShowMenu(false);}}>Todos los Reportes</button>
                 <button className={`font-bold px-4 py-2 rounded-lg transition ${activeTab==='recent' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>{setActiveTab('recent');setShowMenu(false);}}>Reportes Recientes</button>
                 <button className="font-bold px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100" onClick={()=>{setShowAbout(true);setShowMenu(false);}}>Sobre nosotros</button>
