@@ -682,16 +682,17 @@ function App() {
 
       {/* Modal de Reporte */}
       {showReport && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-50 rounded-lg shadow-2xl w-full max-w-2xl p-8 relative" style={{backgroundColor:'#f8fafc'}}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4" style={{zIndex: 9999}}>
+          <div className="bg-gray-50 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 md:p-8 relative" style={{backgroundColor:'#f8fafc'}}>
             <button 
               onClick={() => setShowReport(false)}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition"
+              className="sticky top-0 absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition bg-white"
+              style={{zIndex: 10}}
             >
               ✕
             </button>
             
-            <h2 className="text-3xl font-bold mb-6" style={{color:'#030213'}}>Hacr Reporte</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 pr-8" style={{color:'#030213'}}>Hacer Reporte</h2>
             <form onSubmit={(e) => {
               e.preventDefault();
               const form = e.target;
@@ -706,7 +707,7 @@ function App() {
             }} className="space-y-4">
               <div>
                 <label htmlFor="report-road" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Selecciona la Vía</label>
-                <select id="report-road" name="road" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}>
+                <select id="report-road" name="road" className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}>
                   <option value="">Selecciona una vía</option>
                   {roads.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
                 </select>
@@ -714,7 +715,7 @@ function App() {
 
               <div>
                 <label htmlFor="report-status" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Estado Actual</label>
-                <select id="report-status" name="status" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}>
+                <select id="report-status" name="status" className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}>
                   <option value="">Selecciona el estado</option>
                   <option value="Buena">Buena - Transitable sin problemas</option>
                   <option value="Regular">Regular - Algunos baches o demoras</option>
@@ -725,17 +726,17 @@ function App() {
 
               <div>
                 <label htmlFor="report-location" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Ubicación Específica (Kilómetro)</label>
-                <input type="text" id="report-location" name="location" placeholder="Ej: Km 45 - 48" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}} />
+                <input type="text" id="report-location" name="location" placeholder="Ej: Km 45 - 48" className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}} />
               </div>
 
               <div>
                 <label htmlFor="report-comment" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Descripción del Estado</label>
-                <textarea id="report-comment" name="comment" rows="3" placeholder="Describe el problema..." className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}></textarea>
+                <textarea id="report-comment" name="comment" rows="3" placeholder="Describe el problema..." className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}></textarea>
               </div>
 
               <div>
                 <label htmlFor="report-recommendations" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Recomendaciones</label>
-                <textarea id="report-recommendations" name="recommendations" rows="3" placeholder="Ej: Reducir velocidad..." className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}></textarea>
+                <textarea id="report-recommendations" name="recommendations" rows="3" placeholder="Ej: Reducir velocidad..." className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}></textarea>
               </div>
              
               <div>
@@ -746,17 +747,17 @@ function App() {
                   name="files" 
                   multiple 
                   accept="image/*,video/*"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition cursor-pointer"
+                  className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition cursor-pointer text-sm md:text-base"
                   style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}
                 />
                 <p className="text-xs mt-1" style={{color:'#717182'}}>Soporta imágenes y videos. Máximo 5 archivos.</p>
               </div>
 
               <div className="flex gap-2 justify-end pt-4">
-                <button type="button" onClick={() => setShowReport(false)} className="px-4 py-2 font-semibold rounded-lg transition" style={{color:'#717182', backgroundColor:'#efefff'}}>
+                <button type="button" onClick={() => setShowReport(false)} className="px-4 py-2 font-semibold rounded-lg transition text-sm md:text-base" style={{color:'#717182', backgroundColor:'#efefff'}}>
                   Cancelar
                 </button>
-                <button type="submit" className="px-6 py-2 text-white font-bold rounded-lg transition" style={{backgroundColor:'#030213'}}>
+                <button type="submit" className="px-6 py-2 text-white font-bold rounded-lg transition text-sm md:text-base" style={{backgroundColor:'#030213'}}>
                   Enviar Reporte
                 </button>
               </div>
