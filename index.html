@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/LOGOCHCOCVIA-removebg-preview.png" />
+  <title>Vías del Chocó - Información en Tiempo Real</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Tailwind CDN (para prototipos sin bundler) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- React UMD (desarrollo) y Babel para usar JSX en el navegador sin bundler -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- App en JSX (transpilado por Babel en el cliente). Ideal para prototipos. -->
+  <script type="text/babel">
+// --- inicio App.jsx inline ---
+const roadsData = [
+  { id: 1, title: "Vía Quibdó - Medellín (Túnel de Occidente)", status: "Regular", from: "Quibdó", to: "Medellín", km: "240 km", desc: "Principal vía que conecta el Chocó con Antioquia. Atraviesa Carmen de Atrato y El Carmen de Atrato.", updated: "2 nov 2025, 10:30 AM" },
+  { id: 2, title: "Vía Quibdó - Pereira (Anserma - Tadó)", status: "Regular", from: "Quibdó", to: "Pereira", km: "195 km", desc: "Conecta con Risaralda pasando por Tadó. Estado variable según temporada de lluvias.", updated: "2 nov 2025, 8:00 AM" },
+  { id: 3, title: "Vía Quibdó - Istmina - Condoto", status: "Buena", from: "Quibdó", to: "Istmina", km: "86 km", desc: "Vía intermunicipal que conecta la capital con Istmina y Condoto.", updated: "2 nov 2025, 9:15 AM" },
+  { id: 4, title: "Vía Quibdó - Lloró", status: "Regular", from: "Quibdó", to: "Lloró", km: "72 km", desc: "Conecta con el municipio de Lloró en la zona del medio San Juan.", updated: "2 nov 2025, 11:00 AM" },
+  { id: 5, title: "Vía Tadó - Certegui", status: "Mala", from: "Tadó", to: "Certegui", km: "45 km", desc: "Vía en mal estado que requiere mantenimiento constante.", updated: "1 nov 2025, 4:45 PM" },
+  { id: 6, title: "Vía Istmina - Río Iró", status: "Buena", from: "Istmina", to: "Río Iró", km: "32 km", desc: "Vía hacia la zona del Río Iró en buen estado.", updated: "2 nov 2025, 7:30 AM" },
+  { id: 7, title: "Vía Carmen de Atrato - Vigía del Fuerte", status: "Regular", from: "Carmen de Atrato", to: "Vigía del Fuerte", km: "55 km", desc: "Conecta con la zona del Atrato medio.", updated: "2 nov 2025, 10:00 AM" },
+  { id: 8, title: "Vía Quibdó - Unión Panamericana", status: "Buena", from: "Quibdó", to: "Unión Panamericana", km: "38 km", desc: "Vía en buen estado hacia el norte del departamento.", updated: "2 nov 2025, 9:30 AM" }
+];
+
+const reportsData = [
+  { id: 1, title: "Vía Quibdó - Medellín (Túnel de Occidente)", status: "Regular", location: "Km 145 - 148 (Sector El Carmen de Atrato)", message: "Múltiples baches de tamaño considerable en el carril derecho. Tránsito lento.", rec: "Reducir velocidad a 30 km/h. Preferiblemente conducir en carril izquierdo.", user: "Carlos M.", time: "Hace 2 h" },
+  { id: 2, title: "Vía Tadó - Certegui", status: "Mala", location: "Km 22 - 25", message: "Vía muy deteriorada con derrumbes menores. Superficie completamente destruida.", rec: "Solo vehículos 4x4. Evitar en época de lluvia. Llevar tiempo extra de viaje.", user: "María L.", time: "Hace 3 h" },
+  { id: 3, title: "Vía Quibdó - Pereira (Anserma - Tadó)", status: "Cerrada", location: "Km 78 (Sector La Lorena)", message: "Deslizamiento grande bloqueando completamente ambos carriles. Maquinaria trabajando.", rec: "Vía cerrada totalmente. Usar rutas alternas. Estimar reapertura en 3-4 días.", user: "Jorge P.", time: "Hace 5 h" },
+  { id: 4, title: "Vía Quibdó - Istmina - Condoto", status: "Buena", location: "Km 0 - 86 (Todo el trayecto)", message: "Vía en excelente estado, recientemente pavimentada. Flujo vehicular normal.", rec: "Condiciones óptimas. Mantener velocidad reglamentaria.", user: "Ana S.", time: "Hace 3 h" },
+  { id: 5, title: "Vía Quibdó - Lloró", status: "Regular", location: "Km 35 - 40", message: "Hundimiento del pavimento en varios puntos. Señalización deficiente.", rec: "Conducir con precaución especialmente de noche. Velocidad máxima 40 km/h en este sector.", user: "Pedro R.", time: "Hace 14 h" }
+];
+
+function LoginModal({ onClose, onShowRegister, onLogin }) {
+  function handleSubmit(e){
+    e.preventDefault();
+    const form = e.target;
+    const email = form.email.value.trim();
+    const pass = form.password.value.trim();
+    if(!email || !pass){ alert('Ingresa correo y contraseña'); return; }
+    onLogin(email);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-50 rounded-lg shadow-2xl w-full max-w-md p-8 relative" style={{backgroundColor:'#f8fafc'}}>
+        {/* Botón X para cerrar */}
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition"
+        >
+          ✕
+        </button>
+        
+        <h2 className="text-3xl font-bold mb-6" style={{color:'#030213'}}>Iniciar sesión</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Correo electrónico</label>
+            <input 
+              id="email" 
+              name="email" 
+              type="email" 
+              placeholder="tu@email.com"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition"
+              style={{borderColor:'#bfdbfe', color:'#1a1a1a', backgroundColor:'white', '--tw-ring-color':'#2563eb'}}
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Contraseña</label>
+            <input 
+              id="password" 
+              name="password" 
+              type="password"
+              placeholder="••••••••"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition"
+              style={{borderColor:'#bfdbfe', color:'#1a1a1a', backgroundColor:'white'}}
+            />
+          </div>
+          <div className="flex gap-2 justify-end pt-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 font-semibold rounded-lg transition" style={{color:'#717182', backgroundColor:'#efefff'}}>
+              Cancelar
+            </button>
+            <button type="submit" className="px-6 py-2 text-white font-bold rounded-lg transition" style={{backgroundColor:'#030213'}}>
+              Entrar
+            </button>
+          </div>
+        </form>
+        <p className="text-center text-sm mt-4" style={{color:'#717182'}}>
+          ¿No tienes cuenta? 
+          <button 
+            type="button"
+            onClick={onShowRegister}
+            className="font-semibold hover:underline ml-1 transition"
+            style={{color:'#2563eb'}}
+          >
+            Regístrate aquí
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function RegisterModal({ onClose, onRegister }){
+  function handleSubmit(e){
+    e.preventDefault();
+    const form = e.target;
+    const name = form.name.value.trim();
+    const email = form.email.value.trim();
+    const pass = form.password.value.trim();
+    if(!name || !email || !pass){ alert('Completa todos los campos'); return; }
+    onRegister(name, email);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-50 rounded-lg shadow-2xl w-full max-w-md p-8 relative" style={{backgroundColor:'#f8fafc'}}>
+        {/* Botón X para cerrar */}
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition"
+        >
+          ✕
+        </button>
+
+        <h2 className="text-3xl font-bold mb-6" style={{color:'#030213'}}>Crear cuenta</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="name" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Nombre completo</label>
+            <input 
+              id="name" 
+              name="name" 
+              type="text"
+              placeholder="Tu nombre"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition"
+              style={{borderColor:'#bfdbfe', color:'#1a1a1a', backgroundColor:'white'}}
+            />
+          </div>
+          <div>
+            <label htmlFor="email" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Correo electrónico</label>
+            <input 
+              id="email" 
+              name="email" 
+              type="email"
+              placeholder="tu@email.com"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition"
+              style={{borderColor:'#bfdbfe', color:'#1a1a1a', backgroundColor:'white'}}
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Contraseña</label>
+            <input 
+              id="password" 
+              name="password" 
+              type="password"
+              placeholder="••••••••"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition"
+              style={{borderColor:'#bfdbfe', color:'#1a1a1a', backgroundColor:'white'}}
+            />
+          </div>
+          <div className="flex gap-2 justify-end pt-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 font-semibold rounded-lg transition" style={{color:'#717182', backgroundColor:'#efefff'}}>
+              Cancelar
+            </button>
+            <button type="submit" className="px-6 py-2 text-white font-bold rounded-lg transition" style={{backgroundColor:'#030213'}}>
+              Registrar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Stats() {
+  return (
+    <section className="mb-8">
+      <h3 className="text-2xl font-bold mb-4" style={{color:'#030213'}}>Estado General de las Vías</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="p-4 rounded-lg text-center" style={{backgroundColor:'#f0fdf4', borderLeft:'4px solid #22c55e'}}>
+          <div className="text-3xl font-bold" style={{color:'#22c55e'}}>3</div>
+          <div className="text-sm font-semibold" style={{color:'#030213'}}>Buenas</div>
+        </div>
+        <div className="p-4 rounded-lg text-center" style={{backgroundColor:'#fffbeb', borderLeft:'4px solid #eab308'}}>
+          <div className="text-3xl font-bold" style={{color:'#eab308'}}>3</div>
+          <div className="text-sm font-semibold" style={{color:'#030213'}}>Regulares</div>
+        </div>
+        <div className="p-4 rounded-lg text-center" style={{backgroundColor:'#fef3c7', borderLeft:'4px solid #f97316'}}>
+          <div className="text-3xl font-bold" style={{color:'#f97316'}}>1</div>
+          <div className="text-sm font-semibold" style={{color:'#030213'}}>Malas</div>
+        </div>
+        <div className="p-4 rounded-lg text-center" style={{backgroundColor:'#fee2e2', borderLeft:'4px solid #ef4444'}}>
+          <div className="text-3xl font-bold" style={{color:'#ef4444'}}>1</div>
+          <div className="text-sm font-semibold" style={{color:'#030213'}}>Cerradas</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RoadCard({ road }) {
+  const getBadgeColor = (status) => {
+    switch(status) {
+      case 'Buena': return '#22c55e';
+      case 'Regular': return '#eab308';
+      case 'Mala': return '#f97316';
+      case 'Cerrada': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+
+  return (
+    <article className="p-4 border rounded-lg shadow-md hover:shadow-lg transition" style={{borderColor:'#e5e7eb', backgroundColor:'white'}}>
+      <div className="flex justify-between items-start mb-3">
+        <h3 className="font-bold text-lg" style={{color:'#030213'}}>{road.title}</h3>
+        <span className="px-3 py-1 rounded-full text-sm font-bold text-white" style={{backgroundColor: getBadgeColor(road.status)}}>
+          {road.status}
+        </span>
+      </div>
+      <div className="space-y-2 text-sm mb-3">
+        <div><strong style={{color:'#030213'}}>Desde:</strong> {road.from}</div>
+        <div><strong style={{color:'#030213'}}>Hasta:</strong> {road.to}</div>
+        <div><strong style={{color:'#030213'}}>Distancia:</strong> {road.km}</div>
+      </div>
+      <p style={{color:'#717182'}} className="mb-3">{road.desc}</p>
+      <div className="text-xs" style={{color:'#9ca3af'}}>Última actualización: {road.updated}</div>
+    </article>
+  );
+}
+
+function Report({ r, onViewDetails }) {
+  const getBadgeColor = (status) => {
+    switch(status) {
+      case 'Buena': return '#22c55e';
+      case 'Regular': return '#eab308';
+      case 'Mala': return '#f97316';
+      case 'Cerrada': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+  return (
+    <article className="rounded-xl bg-white p-6 shadow-sm hover:shadow-md transition relative overflow-hidden" style={{border: `1px solid ${getBadgeColor(r.status)}22`}}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="pr-2">
+          <h3 className="font-semibold text-lg text-gray-900 mb-1">{r.title}</h3>
+          <div className="text-sm text-gray-500">{r.location}</div>
+        </div>
+        <div className="text-right">
+          <div className="text-sm text-gray-500">Distancia</div>
+          <div className="font-bold text-gray-900 text-lg">{r.km ? r.km : ''}</div>
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <div className="inline-block px-3 py-1 rounded-full text-xs font-bold text-white" style={{backgroundColor: getBadgeColor(r.status)}}>
+          {r.status}
+        </div>
+      </div>
+
+      <div className="mb-4 text-sm text-gray-700 bg-gray-50 rounded p-3" style={{borderLeft: `4px solid ${getBadgeColor(r.status)}`}}>
+        {r.message}
+      </div>
+
+      <div className="mb-3 text-sm text-gray-600 italic">{r.rec}</div>
+
+      <div className="flex items-center justify-between text-xs text-gray-400 mt-4">
+        <div>{r.user}</div>
+        <div>{r.time}</div>
+      </div>
+
+      <button onClick={() => onViewDetails(r)} className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold shadow hover:bg-blue-700 transition">
+        Ver detalles
+      </button>
+    </article>
+  );
+}
+
+function ReportDetailsModal({ report, onClose }) {
+  if (!report) return null;
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition">✕</button>
+        <h2 className="text-2xl font-bold mb-4 text-blue-700">Detalles del reporte</h2>
+        <div className="mb-2">
+          <span className="font-bold text-gray-700">Vía:</span> {report.title}
+        </div>
+        <div className="mb-2">
+          <span className="font-bold text-gray-700">Estado:</span> <span style={{color: '#fff', backgroundColor: '#2563eb', borderRadius: '6px', padding: '2px 8px'}}>{report.status}</span>
+        </div>
+        <div className="mb-2">
+          <span className="font-bold text-gray-700">Ubicación:</span> {report.location}
+        </div>
+        <div className="mb-2">
+          <span className="font-bold text-gray-700">Descripción:</span> {report.message}
+        </div>
+        <div className="mb-2">
+          <span className="font-bold text-gray-700">Recomendaciones:</span> {report.rec}
+        </div>
+        <div className="mb-2">
+          <span className="font-bold text-gray-700">Usuario:</span> {report.user}
+        </div>
+        <div className="mb-2">
+          <span className="font-bold text-gray-700">Fecha:</span> {report.time}
+        </div>
+        {/* Mostrar foto/video si existe */}
+        {report.files && report.files.length > 0 && (
+          <div className="mt-4">
+            <span className="font-bold text-gray-700 block mb-2">Evidencia:</span>
+            {report.files.map((file, idx) => (
+              file.type.startsWith('image') ? (
+                <img key={idx} src={file.url} alt="Evidencia" className="rounded-lg mb-2 w-full max-h-48 object-cover" />
+              ) : (
+                <video key={idx} controls className="rounded-lg mb-2 w-full max-h-48">
+                  <source src={file.url} type={file.type} />
+                  Tu navegador no soporta video.
+                </video>
+              )
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [showLogin, setShowLogin] = React.useState(false);
+  const [showRegister, setShowRegister] = React.useState(false);
+  const [showReport, setShowReport] = React.useState(false);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [userName, setUserName] = React.useState('');
+  const [roads, setRoads] = React.useState(roadsData);
+  const [reports, setReports] = React.useState(reportsData);
+  const [activeTab, setActiveTab] = React.useState('all');
+  const [showDetails, setShowDetails] = React.useState(null);
+  const [showAbout, setShowAbout] = React.useState(false);
+  const [recentReports, setRecentReports] = React.useState([]); // reportes hechos en la sesión
+  const [showMenu, setShowMenu] = React.useState(false); // menú hamburguesa móvil
+
+  // Función para añadir reporte y actualizar vía si aplica
+  const handleNewReport = (reportData) => {
+    // Crear nuevo reporte
+    const newReport = {
+      id: Math.max(...reports.map(r => r.id), 0) + 1,
+      ...reportData,
+      user: userName,
+      time: 'Hace 0 min'
+    };
+
+    // Eliminar reportes antiguos de la MISMA vía Y MISMA ubicación (km)
+    const filteredReports = reports.filter(r => 
+      !(r.title === reportData.title && r.location === reportData.location)
+    );
+    setReports([newReport, ...filteredReports]);
+    setRecentReports([newReport, ...recentReports]);
+
+    // Si el reporte es sobre una vía existente, actualizar su estado
+    const roadIndex = roads.findIndex(r => r.id === parseInt(reportData.road));
+    if (roadIndex !== -1) {
+      const updatedRoads = [...roads];
+      updatedRoads[roadIndex].status = reportData.status;
+      updatedRoads[roadIndex].updated = new Date().toLocaleString('es-ES');
+      setRoads(updatedRoads);
+    }
+
+    setShowReport(false);
+  };
+
+  // Si no autenticado, muestra header fullscreen
+  if (!isAuthenticated) {
+    return (
+      <div className="w-full h-screen bg-cover bg-center flex flex-col items-center justify-center relative overflow-hidden" 
+           style={{backgroundImage: "url('img/logo.jpeg')"}}>
+        {/* Overlay oscuro */}
+        <div className="absolute inset-0 bg-black/40"></div>
+        
+        {/* Contenido centrado */}
+        <div className="relative z-10 text-center text-white px-4 max-w-2xl">
+          <div className="mb-8">
+            <img src="img/logo.jpeg" alt="Vías del Chocó" className="h-20 rounded-lg shadow-lg mx-auto mb-6" />
+          </div>
+          <h1 className="text-6xl md:text-7xl font-black drop-shadow-2xl mb-4">Vías del Chocó</h1>
+          <p className="text-xl md:text-2xl text-gray-100 drop-shadow-lg mb-12">Información actualizada sobre el estado de las carreteras</p>
+          
+          {/* Botones de auth */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button 
+              onClick={() => setShowLogin(true)}
+              className="px-8 py-3 bg-white text-black font-bold rounded-lg shadow-lg hover:bg-gray-100 transition text-lg"
+            >
+              Iniciar sesión
+            </button>
+            <button 
+              onClick={() => setShowRegister(true)}
+              className="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-lg hover:bg-blue-700 transition text-lg"
+            >
+              Registrarse
+            </button>
+          </div>
+        </div>
+
+        {/* Modales */}
+        {showLogin && (
+          <LoginModal 
+            onClose={() => setShowLogin(false)} 
+            onShowRegister={() => { setShowLogin(false); setShowRegister(true); }}
+            onLogin={(email) => { setIsAuthenticated(true); setUserName(email); setShowLogin(false); }}
+          />
+        )}
+        {showRegister && (
+          <RegisterModal 
+            onClose={() => setShowRegister(false)}
+            onRegister={(name, email) => { setIsAuthenticated(true); setUserName(name); setShowRegister(false); }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Si autenticado, muestra contenido principal
+  return (
+    <div className="app min-h-screen bg-gray-50">
+      {/* Header con logo de fondo */}
+      <div className="relative w-full h-56 md:h-72 flex items-center justify-center" style={{backgroundImage: "url('img/LOGOCHCOCVIA.jpg')", backgroundSize: 'cover', backgroundPosition: 'center'}}>
+        <div className="absolute inset-0 bg-black/30"></div>
+        <div className="relative z-10 text-center w-full">
+          <h1 className="text-5xl md:text-6xl font-black text-white drop-shadow-lg mb-2">Vías del Chocó</h1>
+          <p className="text-lg md:text-2xl text-gray-100 drop-shadow mb-4">Información actualizada sobre el estado de las carreteras</p>
+        </div>
+        {/* Menú flotante sticky */}
+        <nav className="fixed top-0 left-0 w-full bg-white/90 shadow-lg backdrop-blur-md z-50 flex items-center justify-between px-4 py-3 md:px-12 md:py-4" style={{borderBottom: '2px solid #2563eb'}}>
+          <div className="flex items-center gap-3">
+            <span className="font-black text-xl md:text-2xl text-blue-700">Vías del Chocó</span>
+          </div>
+          <div className="hidden md:flex gap-8">
+            <button className={`font-bold px-4 py-2 rounded-lg transition ${activeTab==='all' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>setActiveTab('all')}>Todos los Reportes</button>
+            <button className={`font-bold px-4 py-2 rounded-lg transition ${activeTab==='recent' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>setActiveTab('recent')}>Reportes Recientes</button>
+            <button className="font-bold px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100" onClick={()=>setShowAbout(true)}>Sobre nosotros</button>
+          </div>
+          {/* Menú hamburguesa móvil */}
+          <div className="md:hidden">
+            <button onClick={()=>setShowMenu(m=>!m)} className="p-2 rounded-lg bg-blue-100 text-blue-700">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M4.75 6.75h14.5M4.75 12h14.5M4.75 17.25h14.5" /></svg>
+            </button>
+            {showMenu && (
+              <div className="absolute top-16 left-0 w-full bg-white shadow-lg flex flex-col gap-2 p-4 z-50">
+                <button className={`font-bold px-4 py-2 rounded-lg transition ${activeTab==='all' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>{setActiveTab('all');setShowMenu(false);}}>Todos los Reportes</button>
+                <button className={`font-bold px-4 py-2 rounded-lg transition ${activeTab==='recent' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>{setActiveTab('recent');setShowMenu(false);}}>Reportes Recientes</button>
+                <button className="font-bold px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100" onClick={()=>{setShowAbout(true);setShowMenu(false);}}>Sobre nosotros</button>
+              </div>
+            )}
+          </div>
+        </nav>
+      </div>
+
+      {/* Modal Sobre Nosotros */}
+      {showAbout && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative">
+            <button onClick={() => setShowAbout(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition">✕</button>
+            <h2 className="text-3xl font-bold mb-4 text-blue-700">Sobre nosotros</h2>
+            <p className="mb-4 text-gray-700">Esta página fue creada para informar a la comunidad sobre el estado de las carreteras del Chocó en tiempo real. Surgió como iniciativa de apoyo a los viajeros y habitantes de la región, permitiendo reportar y consultar el estado de las vías de manera colaborativa.</p>
+            <div className="mb-2">
+              <span className="font-bold text-blue-700">Dueño:</span> Luis Alexander
+            </div>
+            <div className="mb-2">
+              <span className="font-bold text-blue-700">Estudiante:</span> Universidad Uniclaretiana
+            </div>
+            <div className="mb-2">
+              <span className="font-bold text-blue-700">Facultad:</span> Ingeniería en Sistemas
+            </div>
+            <div className="mb-2">
+              <span className="font-bold text-blue-700">Semestre:</span> Segundo semestre
+            </div>
+            <p className="mt-4 text-gray-600 text-sm">¡Gracias por usar la plataforma y contribuir con tus reportes!</p>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 container mx-auto px-2 md:px-8 py-8">
+        <Stats />
+        <div className="flex flex-col items-center mt-8 mb-6">
+          <button 
+            onClick={() => setShowReport(true)}
+            className="px-6 md:px-8 py-3 md:py-4 bg-blue-600 text-white font-bold rounded-lg shadow-lg hover:bg-blue-700 transition duration-300 flex items-center gap-3 text-lg"
+            style={{boxShadow:'0 6px 20px 0 rgba(37,99,235,0.12)'}}
+          >
+            {/* Icono SVG documento + lápiz */}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5" style={{color:'white'}}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5L20.5 7.5 8 20H4v-4L16.5 3.5z" />
+            </svg>
+            Hacer Reporte
+          </button>
+
+          {/* Botones de filtro - debajo del botón principal */}
+          <div className="mt-4 bg-white/60 rounded-xl p-1 shadow-sm flex items-center gap-1" style={{border:'1px solid rgba(0,0,0,0.04)'}}>
+            <button onClick={() => setActiveTab('all')} className={`px-5 py-2 rounded-lg font-semibold transition ${activeTab==='all' ? 'bg-white text-gray-800' : 'text-gray-500 hover:bg-gray-50'}`}>
+              Todas las Vías
+            </button>
+            <button onClick={() => setActiveTab('recent')} className={`px-5 py-2 rounded-lg font-semibold transition ${activeTab==='recent' ? 'bg-white text-gray-800' : 'text-gray-500 hover:bg-gray-50'}`}>
+              Reportes Recientes
+            </button>
+          </div>
+        </div>
+        {/* Mostrar reportes */}
+        {activeTab === 'all' && (
+          <section className="py-6">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">Reportes de todas las vías</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {reports.length > 0 ? (
+                reports.map(r => <Report key={r.id} r={r} onViewDetails={setShowDetails} />)
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p className="text-lg">No hay reportes disponibles</p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+        {activeTab === 'recent' && (
+          <section className="py-6">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">Reportes recientes</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentReports.length > 0 ? (
+                recentReports.map(r => <Report key={r.id} r={r} onViewDetails={setShowDetails} />)
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p className="text-lg">No hay reportes recientes. Usa "Hacer Reporte" para crear uno.</p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+        {/* Modal de detalles de reporte */}
+        <ReportDetailsModal report={showDetails} onClose={()=>setShowDetails(null)} />
+      </main>
+
+      {/* Modal de Reporte */}
+      {showReport && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-50 rounded-lg shadow-2xl w-full max-w-2xl p-8 relative" style={{backgroundColor:'#f8fafc'}}>
+            <button 
+              onClick={() => setShowReport(false)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition"
+            >
+              ✕
+            </button>
+            
+            <h2 className="text-3xl font-bold mb-6" style={{color:'#030213'}}>Hacr Reporte</h2>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.target;
+              handleNewReport({
+                title: form.road.options[form.road.selectedIndex].text,
+                road: form.road.value,
+                status: form.status.value,
+                location: form.location.value,
+                message: form.comment.value,
+                rec: form.recommendations.value
+              });
+            }} className="space-y-4">
+              <div>
+                <label htmlFor="report-road" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Selecciona la Vía</label>
+                <select id="report-road" name="road" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}>
+                  <option value="">Selecciona una vía</option>
+                  {roads.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="report-status" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Estado Actual</label>
+                <select id="report-status" name="status" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}>
+                  <option value="">Selecciona el estado</option>
+                  <option value="Buena">Buena - Transitable sin problemas</option>
+                  <option value="Regular">Regular - Algunos baches o demoras</option>
+                  <option value="Mala">Mala - Muy deteriorada</option>
+                  <option value="Cerrada">Cerrada - Intransitable</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="report-location" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Ubicación Específica (Kilómetro)</label>
+                <input type="text" id="report-location" name="location" placeholder="Ej: Km 45 - 48" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}} />
+              </div>
+
+              <div>
+                <label htmlFor="report-comment" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Descripción del Estado</label>
+                <textarea id="report-comment" name="comment" rows="3" placeholder="Describe el problema..." className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}></textarea>
+              </div>
+
+              <div>
+                <label htmlFor="report-recommendations" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Recomendaciones</label>
+                <textarea id="report-recommendations" name="recommendations" rows="3" placeholder="Ej: Reducir velocidad..." className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}></textarea>
+              </div>
+
+              <div>
+                <label htmlFor="report-files" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Adjuntar Archivos (Fotos/Videos)</label>
+                <input 
+                  type="file" 
+                  id="report-files" 
+                  name="files" 
+                  multiple 
+                  accept="image/*,video/*"
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition cursor-pointer"
+                  style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}
+                />
+                <p className="text-xs mt-1" style={{color:'#717182'}}>Soporta imágenes y videos. Máximo 5 archivos.</p>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-4">
+                <button type="button" onClick={() => setShowReport(false)} className="px-4 py-2 font-semibold rounded-lg transition" style={{color:'#717182', backgroundColor:'#efefff'}}>
+                  Cancelar
+                </button>
+                <button type="submit" className="px-6 py-2 text-white font-bold rounded-lg transition" style={{backgroundColor:'#030213'}}>
+                  Enviar Reporte
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <footer className="bg-gray-900 text-white py-12 mt-12">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            {/* Sobre */}
+            <div>
+              <h4 className="text-lg font-bold mb-4">Sobre Nosotros</h4>
+              <p className="text-gray-400 text-sm">Vías del Chocó: Información vial en tiempo real para mejorar la seguridad.</p>
+            </div>
+
+            {/* Enlaces */}
+            <div>
+              <h4 className="text-lg font-bold mb-4">Enlaces</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><button onClick={() => setShowAbout(true)} className="hover:text-white">Sobre Nosotros</button></li>
+                <li><a href="#" className="hover:text-white">Términos de Uso</a></li>
+                <li><a href="#" className="hover:text-white">Privacidad</a></li>
+              </ul>
+            </div>
+
+            {/* Contacto */}
+            <div>
+              <h4 className="text-lg font-bold mb-4">Contacto</h4>
+              <p className="text-gray-400 text-sm">📧 info@viasdelchoco.com</p>
+              <p className="text-gray-400 text-sm">📞 +57 300 123 4567</p>
+              <p className="text-gray-400 text-sm">📍 Quibdó, Chocó</p>
+            </div>
+
+            {/* Redes Sociales */}
+            <div>
+              <h4 className="text-lg font-bold mb-4">Síguenos</h4>
+              <div className="flex gap-4">
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-2xl">f</a>
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-2xl">𝕏</a>
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-pink-400 hover:text-pink-300 text-2xl">📷</a>
+                 
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-gray-700 mb-6" />
+          <div className="text-center text-gray-400 text-sm">
+            <p>&copy; 2025 Vías del Chocó. Realizado por <span className="text-blue-400 font-bold">luisito</span> | Todos los derechos reservados.</p>
+          </div>
+        </div>
+      </footer>
+      </div>
+     );
+  }
+
+// Montaje (React y ReactDOM están disponibles globalmente a través de los scripts UMD cargados en index.html)
+const appContainer = document.getElementById('app');
+if (appContainer) {
+  ReactDOM.createRoot(appContainer).render(<App />);
+} else {
+  console.error('No se encontró #app');
+}
+// --- fin App.jsx inline ---
+  </script>
+</body>
+</html>
