@@ -3,19 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="img/LOGOCHCOCVIA-removebg-preview.png" />
+  <link rel="icon" type="image/png" href="img/LOGOCHCOCVIA-removebg-preview.png" />
   <title>Vías del Chocó - Información en Tiempo Real</title>
   <link rel="stylesheet" href="css/styles.css">
-  <!-- Leaflet CSS para el mapa -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Tailwind CDN (para prototipos sin bundler) -->
   <script src="https://cdn.tailwindcss.com"></script>
-</head>  
- <body> 
-  <div id="app"></div>   
-
-  <!-- React UMD (desarrollo) y Babel para usar JSX en el navegador sin bundler -->
+</head>
+<body>
+  <div id="app"></div>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -41,6 +38,19 @@ const reportsData = [
   { id: 4, title: "Vía Quibdó - Istmina - Condoto", status: "Buena", location: "Km 0 - 86 (Todo el trayecto)", message: "Vía en excelente estado, recientemente pavimentada. Flujo vehicular normal.", rec: "Condiciones óptimas. Mantener velocidad reglamentaria.", user: "Ana S.", time: "Hace 3 h", lat: 5.6845, lng: -76.4278 },
   { id: 5, title: "Vía Quibdó - Lloró", status: "Regular", location: "Km 35 - 40", message: "Hundimiento del pavimento en varios puntos. Señalización deficiente.", rec: "Conducir con precaución especialmente de noche. Velocidad máxima 40 km/h en este sector.", user: "Pedro R.", time: "Hace 14 h", lat: 5.7234, lng: -75.9876 }
 ];
+
+// Coordenadas representativas por id de vía (sirven para asignar un punto por defecto
+// cuando un usuario crea un reporte desde el formulario y no proporciona lat/lng).
+const roadCoords = {
+  1: { lat: 5.8521, lng: -75.6521 }, // Vía Quibdó - Medellín
+  2: { lat: 5.6321, lng: -76.0521 }, // Quibdó - Pereira
+  3: { lat: 5.6845, lng: -76.4278 }, // Quibdó - Istmina - Condoto
+  4: { lat: 5.7234, lng: -75.9876 }, // Quibdó - Lloró
+  5: { lat: 5.7821, lng: -76.2389 }, // Tadó - Certegui
+  6: { lat: 5.6845, lng: -76.4278 }, // Istmina - Río Iró (reuso)
+  7: { lat: 5.6929, lng: -75.7519 }, // Carmen de Atrato - Vigía del Fuerte (centro)
+  8: { lat: 5.6929, lng: -75.7519 }  // Quibdó - Unión Panamericana (centro)
+};
  
 function LoginModal({ onClose, onShowRegister, onLogin }) {
   function handleSubmit(e){
@@ -286,10 +296,12 @@ function Report({ r, onViewDetails }) {
   );
 }
 
-function MapComponent({ reports }) {
+function MapComponent({ reports, highlightReportId, enableClickToSet, onMapClick, tempMarker }) {
   const mapRef = React.useRef(null);
   const mapInstance = React.useRef(null);
   const markers = React.useRef({});
+  // highlightReportId se manejará desde App mediante prop para abrir popup y centrar
+  const propsRef = React.useRef({});
 
   const getMarkerColor = (status) => {
     switch(status) {
@@ -368,7 +380,45 @@ function MapComponent({ reports }) {
         markers.current[report.id] = marker;
       }
     });
+
+    // si hay marcador temporal (tempMarker) mostrarlo
+    if (window.L && tempMarker && tempMarker.lat && tempMarker.lng) {
+      // quitar previo
+      if (markers.current.__temp) mapInstance.current.removeLayer(markers.current.__temp);
+      const m = L.marker([tempMarker.lat, tempMarker.lng], { opacity: 0.85 }).addTo(mapInstance.current);
+      markers.current.__temp = m;
+    }
   }, [reports]);
+
+    // efecto para abrir popup de un reporte recien creado y centrar mapa
+  React.useEffect(() => {
+    if (!window.L || !mapInstance.current) return;
+    const id = highlightReportId || propsRef.current.highlightReportId;
+    if (!id) return;
+    const marker = markers.current[id];
+    if (marker) {
+      try {
+        marker.openPopup();
+        mapInstance.current.setView(marker.getLatLng(), Math.max(mapInstance.current.getZoom(), 12));
+      } catch (err) {
+        console.warn('No se pudo abrir popup para el reporte', id, err);
+      }
+    }
+    // limpiar el highlight en la referencia para evitar re-aperturas
+    propsRef.current.highlightReportId = null;
+  }, [reports, highlightReportId]);
+
+  // manejar clicks en el mapa para fijar coordenadas cuando esté activado
+  React.useEffect(() => {
+    if (!window.L || !mapInstance.current) return;
+    function onClick(e){
+      if (!enableClickToSet) return;
+      const { lat, lng } = e.latlng;
+      if (typeof onMapClick === 'function') onMapClick({ lat, lng });
+    }
+    mapInstance.current.on('click', onClick);
+    return () => mapInstance.current.off('click', onClick);
+  }, [enableClickToSet, onMapClick]);
 
   return (
     <div 
@@ -419,10 +469,10 @@ function ReportDetailsModal({ report, onClose }) {
             <span className="font-bold text-gray-700 block mb-2">Evidencia:</span>
             {report.files.map((file, idx) => (
               file.type.startsWith('image') ? (
-                <img key={idx} src={file.url} alt="Evidencia" className="rounded-lg mb-2 w-full max-h-48 object-cover" />
+                <img key={idx} src={file.data || file.url} alt="Evidencia" className="rounded-lg mb-2 w-full max-h-48 object-cover" />
               ) : (
                 <video key={idx} controls className="rounded-lg mb-2 w-full max-h-48">
-                  <source src={file.url} type={file.type} />
+                  <source src={file.data || file.url} type={file.type} />
                   Tu navegador no soporta video.
                 </video>
               )
@@ -434,11 +484,188 @@ function ReportDetailsModal({ report, onClose }) {
   );
 }
 
+function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiAvailable }) {
+  const [tab, setTab] = React.useState('reports');
+  const [editing, setEditing] = React.useState(null);
+
+  const approveToggle = async (id) => {
+    const report = reports.find(r => r.id === id);
+    const updated = { ...report, approved: !report.approved };
+    setReports(prev => prev.map(r => r.id === id ? updated : r));
+
+    // Enviar cambio al servidor
+    if (apiAvailable) {
+      try {
+  const res = await fetch(`/.netlify/functions/reports?id=${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated)
+        });
+        if (!res.ok) {
+          console.warn('Error al actualizar en servidor');
+        }
+      } catch (err) {
+        console.warn('Error de conexión:', err.message);
+      }
+    }
+  };
+
+  const removeReport = async (id) => {
+    if (!confirm('¿Eliminar este reporte?')) return;
+    setReports(prev => prev.filter(r => r.id !== id));
+
+    // Enviar eliminación al servidor
+    if (apiAvailable) {
+      try {
+  const res = await fetch(`/.netlify/functions/reports?id=${id}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) {
+          console.warn('Error al eliminar en servidor');
+        }
+      } catch (err) {
+        console.warn('Error de conexión:', err.message);
+      }
+    }
+  };
+
+  const editReport = async (r) => {
+    const newMsg = prompt('Editar descripción', r.message);
+    if (newMsg == null) return;
+    const updated = { ...r, message: newMsg };
+    setReports(prev => prev.map(rep => rep.id === r.id ? updated : rep));
+
+    // Enviar cambio al servidor
+    if (apiAvailable) {
+      try {
+  const res = await fetch(`/.netlify/functions/reports?id=${r.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated)
+        });
+        if (!res.ok) {
+          console.warn('Error al actualizar en servidor');
+        }
+      } catch (err) {
+        console.warn('Error de conexión:', err.message);
+      }
+    }
+  };
+
+  const blockToggle = async (name) => {
+    const user = users.find(u => u.name === name);
+    const updated = { ...user, blocked: !user.blocked };
+    setUsers(prev => prev.map(u => u.name === name ? updated : u));
+
+    // Enviar cambio al servidor
+    if (apiAvailable) {
+      try {
+  const res = await fetch(`/.netlify/functions/users?name=${encodeURIComponent(name)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated)
+        });
+        if (!res.ok) {
+          console.warn('Error al actualizar usuario en servidor');
+        }
+      } catch (err) {
+        console.warn('Error de conexión:', err.message);
+      }
+    }
+  };
+
+  // Estadísticas simples
+  const stats = React.useMemo(() => {
+    const byStatus = reports.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {});
+    const byRoad = reports.reduce((acc, r) => { acc[r.title] = (acc[r.title] || 0) + 1; return acc; }, {});
+    const topRoads = Object.entries(byRoad).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    return { byStatus, topRoads };
+  }, [reports]);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-auto">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition">✕</button>
+        <h2 className="text-2xl font-bold mb-4">Panel de Administración</h2>
+        <div className="mb-4">
+          <button onClick={()=>setTab('reports')} className={`px-3 py-1 mr-2 rounded ${tab==='reports' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Reportes</button>
+          <button onClick={()=>setTab('users')} className={`px-3 py-1 mr-2 rounded ${tab==='users' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Usuarios</button>
+          <button onClick={()=>setTab('stats')} className={`px-3 py-1 rounded ${tab==='stats' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Estadísticas</button>
+        </div>
+
+        {tab === 'reports' && (
+          <div>
+            <h3 className="font-semibold mb-3">Reportes recientes</h3>
+            <div className="grid gap-3">
+              {reports.map(r => (
+                <div key={r.id} className="p-3 border rounded flex items-start justify-between">
+                  <div>
+                    <div className="font-bold">{r.title} <span className="text-xs text-gray-500">{r.location}</span></div>
+                    <div className="text-sm text-gray-700">{r.message}</div>
+                    <div className="text-xs text-gray-400">Usuario: {r.user} · {r.time}</div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <button onClick={() => approveToggle(r.id)} className={`px-3 py-1 rounded ${r.approved ? 'bg-green-500 text-white' : 'bg-gray-100'}`}>{r.approved ? 'Aprobado' : 'Aprobar'}</button>
+                    <button onClick={() => editReport(r)} className="px-3 py-1 rounded bg-yellow-100">Editar</button>
+                    <button onClick={() => removeReport(r.id)} className="px-3 py-1 rounded bg-red-500 text-white">Eliminar</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'users' && (
+          <div>
+            <h3 className="font-semibold mb-3">Usuarios registrados</h3>
+            <div className="grid gap-2">
+              {users.map(u => (
+                <div key={u.name} className="p-3 border rounded flex items-center justify-between">
+                  <div>
+                    <div className="font-bold">{u.name}</div>
+                    <div className="text-xs text-gray-500">Rol: {u.role} · {u.blocked ? 'Bloqueado' : 'Activo'}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => blockToggle(u.name)} className={`px-3 py-1 rounded ${u.blocked ? 'bg-green-500 text-white' : 'bg-gray-100'}`}>{u.blocked ? 'Desbloquear' : 'Bloquear'}</button>
+                    <button onClick={() => setUsers(prev => prev.map(x => x.name===u.name ? {...x, role: x.role==='user' ? 'admin' : 'user'} : x))} className="px-3 py-1 rounded bg-blue-100">Cambiar rol</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'stats' && (
+          <div>
+            <h3 className="font-semibold mb-3">Estadísticas</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-3 border rounded">
+                <h4 className="font-bold mb-2">Reportes por estado</h4>
+                {Object.entries(stats.byStatus).map(([k,v]) => (
+                  <div key={k} className="flex justify-between text-sm"><span>{k}</span><span>{v}</span></div>
+                ))}
+              </div>
+              <div className="p-3 border rounded">
+                <h4 className="font-bold mb-2">Vías con más reportes</h4>
+                {stats.topRoads.map(([name, count]) => (
+                  <div key={name} className="flex justify-between text-sm"><span>{name}</span><span>{count}</span></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [showLogin, setShowLogin] = React.useState(false);
   const [showRegister, setShowRegister] = React.useState(false);
   const [showReport, setShowReport] = React.useState(false);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [isAdmin, setIsAdmin] = React.useState(false);
   const [userName, setUserName] = React.useState('');
   const [roads, setRoads] = React.useState(roadsData);
   const [reports, setReports] = React.useState(reportsData);
@@ -447,26 +674,72 @@ function App() {
   const [showAbout, setShowAbout] = React.useState(false);
   const [recentReports, setRecentReports] = React.useState([]); // reportes hechos en la sesión
   const [showMenu, setShowMenu] = React.useState(false); // menú hamburguesa móvil
+  const [users, setUsers] = React.useState(() => {
+    // Inicializar con usuarios que aparecen en los reportes
+    const uniq = Array.from(new Set(reportsData.map(r => r.user))).map(u => ({ name: u, blocked: false, role: 'user' }));
+    return uniq;
+  });
+  const [highlightReportId, setHighlightReportId] = React.useState(null);
+  const [showAdminPanel, setShowAdminPanel] = React.useState(false);
+  const [mapClickMode, setMapClickMode] = React.useState(false); // true cuando el usuario activa 'marcar en mapa'
+  const [pendingCoords, setPendingCoords] = React.useState(null); // {lat,lng} seleccionadas desde el mapa
+  const [apiAvailable, setApiAvailable] = React.useState(false); // true si el servidor está disponible
+  const [selectedCoords, setSelectedCoords] = React.useState(null); // {lat,lng} para llenar el formulario
+
+  // Cargar datos del servidor al inicializar
+  React.useEffect(() => {
+    const loadFromServer = async () => {
+      try {
+  const res = await fetch('/.netlify/functions/reports');
+        if (res.ok) {
+          const data = await res.json();
+          setReports(data);
+          setApiAvailable(true);
+        }
+      } catch (err) {
+        console.warn('Servidor no disponible, usando datos en memoria:', err.message);
+        setApiAvailable(false);
+      }
+    };
+    loadFromServer();
+  }, []);
 
   // Función para añadir reporte y actualizar vía si aplica
-  const handleNewReport = (reportData) => {
-    // Crear nuevo reporte
+  const handleNewReport = async (reportData) => {
+    // Crear nuevo reporte con id
+    const newId = Math.max(...reports.map(r => r.id), 0) + 1;
+
+    // intentar asignar coordenadas por defecto según la vía seleccionada
+    let lat = reportData.lat;
+    let lng = reportData.lng;
+    const roadId = parseInt(reportData.road);
+    if ((!lat || !lng) && roadCoords[roadId]) {
+      // small jitter para no superponer marcadores exactos
+      const jitter = () => (Math.random() - 0.5) * 0.02;
+      lat = roadCoords[roadId].lat + jitter();
+      lng = roadCoords[roadId].lng + jitter();
+    }
+
     const newReport = {
-      id: Math.max(...reports.map(r => r.id), 0) + 1,
+      id: newId,
       ...reportData,
       user: userName,
-      time: 'Hace 0 min'
+      time: 'Hace 0 min',
+      lat,
+      lng,
+      approved: false
     };
 
     // Eliminar reportes antiguos de la MISMA vía Y MISMA ubicación (km)
     const filteredReports = reports.filter(r => 
       !(r.title === reportData.title && r.location === reportData.location)
     );
-    setReports([newReport, ...filteredReports]);
+    const updatedReports = [newReport, ...filteredReports];
+    setReports(updatedReports);
     setRecentReports([newReport, ...recentReports]);
 
-    // Si el reporte es sobre una vía existente, actualizar su estado
-    const roadIndex = roads.findIndex(r => r.id === parseInt(reportData.road));
+    // actualizar estado de la vía si aplica
+    const roadIndex = roads.findIndex(r => r.id === roadId);
     if (roadIndex !== -1) {
       const updatedRoads = [...roads];
       updatedRoads[roadIndex].status = reportData.status;
@@ -474,7 +747,41 @@ function App() {
       setRoads(updatedRoads);
     }
 
+    // si el report creado tiene coordenas, pedir a MapComponent que lo resalte
+    setHighlightReportId(newId);
     setShowReport(false);
+    // si veníamos en modo marcar en mapa, desactivar y limpiar pending coords
+    setMapClickMode(false);
+    setPendingCoords(null);
+    // quitar highlight luego de un instante para evitar reaperturas repetidas
+    setTimeout(() => setHighlightReportId(null), 1500);
+
+    // Enviar al servidor si está disponible
+    if (apiAvailable) {
+      try {
+  const res = await fetch('/.netlify/functions/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newReport)
+        });
+        if (!res.ok) {
+          console.warn('Error al guardar en servidor:', res.statusText);
+        }
+      } catch (err) {
+        console.warn('Error de conexión al guardar reporte:', err.message);
+      }
+    }
+  };
+
+  // Manejar click en mapa para seleccionar coordenadas en el formulario
+  const handleMapClick = ({ lat, lng }) => {
+    setSelectedCoords({ lat, lng });
+    setMapClickMode(false);
+    // Hacer scroll al campo de latitud para confirmar que se seleccionó
+    setTimeout(() => {
+      const latInput = document.getElementById('report-latitude');
+      if (latInput) latInput.focus();
+    }, 100);
   };
 
   // Si no autenticado, muestra header fullscreen
@@ -515,13 +822,38 @@ function App() {
           <LoginModal 
             onClose={() => setShowLogin(false)} 
             onShowRegister={() => { setShowLogin(false); setShowRegister(true); }}
-            onLogin={(email) => { setIsAuthenticated(true); setUserName(email); setShowLogin(false); }}
+            onLogin={(email) => { 
+              const isAdminUser = String(email).toLowerCase().split('@')[0] === 'admin';
+              setIsAuthenticated(true); 
+              setUserName(email); 
+              setIsAdmin(isAdminUser);
+              localStorage.setItem('currentUser', email);
+              setShowLogin(false); 
+            }}
           />
         )}
         {showRegister && (
           <RegisterModal 
             onClose={() => setShowRegister(false)}
-            onRegister={(name, email) => { setIsAuthenticated(true); setUserName(name); setShowRegister(false); }}
+            onRegister={(name, email) => { 
+              const isAdminUser = String(email).toLowerCase().split('@')[0] === 'admin';
+              setIsAuthenticated(true); 
+              setUserName(name); 
+              setIsAdmin(isAdminUser);
+              // Guardar el email como usuario actual (consistente para admin check)
+              localStorage.setItem('currentUser', email);
+              const newUser = { name, email, blocked: false, role: isAdminUser ? 'admin' : 'user' };
+              setUsers(prev => [...prev, newUser]);
+              // Enviar usuario al servidor si está disponible
+              if (apiAvailable) {
+                fetch('/.netlify/functions/users', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(newUser)
+                }).catch(err => console.warn('Error al guardar usuario en servidor:', err.message));
+              }
+              setShowRegister(false); 
+            }}
           />
         )}
       </div>
@@ -550,6 +882,9 @@ function App() {
             <div className="w-px h-6 bg-gray-300"></div>
             <div className="flex items-center gap-3">
               <span className="text-sm font-semibold text-gray-700">{userName}</span>
+              {isAdmin && (
+                <button onClick={()=>setShowAdminPanel(true)} className="font-semibold px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition inline-block">Panel Admin</button>
+              )}
               <button onClick={()=>{setIsAuthenticated(false); setShowMenu(false);}} className="font-bold px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition">Cerrar Sesión</button>
             </div>
           </div>
@@ -567,6 +902,9 @@ function App() {
                 <div className="px-4 py-2">
                   <p className="text-xs text-gray-500 mb-2">Sesión: <span className="font-semibold text-gray-700">{userName}</span></p>
                 </div>
+                {isAdmin && (
+                  <button onClick={()=>{ setShowAdminPanel(true); setShowMenu(false); }} className="font-semibold px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition text-left mb-2 inline-block w-full text-center">Panel Admin</button>
+                )}
                 <button onClick={()=>{setIsAuthenticated(false); setShowMenu(false);}} className="font-bold px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition text-left">🚪 Cerrar Sesión</button>
               </div>
             )}
@@ -607,7 +945,13 @@ function App() {
             <h2 className="text-3xl font-bold text-gray-800">📍 Mapa en Tiempo Real</h2>
             <p className="text-gray-600 mt-2">Visualiza la ubicación de todos los reportes de vías en el Chocó</p>
           </div>
-          <MapComponent reports={reports} />
+          <MapComponent
+            reports={reports}
+            highlightReportId={highlightReportId}
+            enableClickToSet={mapClickMode}
+            onMapClick={handleMapClick}
+            tempMarker={selectedCoords}
+          />
           
           {/* Leyenda del mapa */}
           <div className="mt-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -688,6 +1032,9 @@ function App() {
         )}
         {/* Modal de detalles de reporte */}
         <ReportDetailsModal report={showDetails} onClose={()=>setShowDetails(null)} />
+        {showAdminPanel && (
+          <AdminPanel reports={reports} setReports={setReports} users={users} setUsers={setUsers} roads={roads} onClose={()=>setShowAdminPanel(false)} apiAvailable={apiAvailable} />
+        )}
       </main>
 
       {/* Modal de Reporte */}
@@ -703,16 +1050,40 @@ function App() {
             </button>
             
             <h2 className="text-2xl md:text-3xl font-bold mb-6 pr-8" style={{color:'#030213'}}>Hacer Reporte</h2>
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
               const form = e.target;
+              const filesInput = form.files;
+              const files = Array.from(filesInput.files || []);
+              
+              // Convertir archivos a base64
+              const filesData = [];
+              for (const file of files) {
+                const reader = new FileReader();
+                const fileBase64 = await new Promise((resolve) => {
+                  reader.onload = () => resolve(reader.result);
+                  reader.readAsDataURL(file);
+                });
+                filesData.push({
+                  name: file.name,
+                  type: file.type,
+                  data: fileBase64
+                });
+              }
+              
+              const lat = parseFloat(form.latitude.value);
+              const lng = parseFloat(form.longitude.value);
+              
               handleNewReport({
                 title: form.road.options[form.road.selectedIndex].text,
                 road: form.road.value,
                 status: form.status.value,
                 location: form.location.value,
                 message: form.comment.value,
-                rec: form.recommendations.value
+                rec: form.recommendations.value,
+                lat: lat || null,
+                lng: lng || null,
+                files: filesData
               });
             }} className="space-y-4">
               <div>
@@ -738,6 +1109,25 @@ function App() {
                 <label htmlFor="report-location" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Ubicación Específica (Kilómetro)</label>
                 <input type="text" id="report-location" name="location" placeholder="Ej: Km 45 - 48" className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}} />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="report-latitude" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Latitud</label>
+                  <input type="number" id="report-latitude" name="latitude" placeholder="5.6929" step="0.0001" defaultValue={selectedCoords?.lat || ''} className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}} />
+                </div>
+                <div>
+                  <label htmlFor="report-longitude" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Longitud</label>
+                  <input type="number" id="report-longitude" name="longitude" placeholder="-75.7519" step="0.0001" defaultValue={selectedCoords?.lng || ''} className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}} />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMapClickMode(!mapClickMode)}
+                className={`w-full px-4 py-2 rounded-lg font-semibold transition ${mapClickMode ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+              >
+                {mapClickMode ? '❌ Cancelar Selección en Mapa' : '📍 Seleccionar en Mapa'}
+              </button>
 
               <div>
                 <label htmlFor="report-comment" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Descripción del Estado</label>

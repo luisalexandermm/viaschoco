@@ -1,0 +1,13 @@
+{
+  "name": "viaschoco-api",
+  "version": "1.0.0",
+  "description": "API para Vías del Chocó. Netlify Functions + Neon (Postgres)",
+  "main": "netlify/functions/reports.js",
+  "scripts": {
+    "start": "netlify dev",
+    "start:legacy": "python server.py"
+  },
+  "dependencies": {
+    "@netlify/neon": "^0.1.0"
+  }
+}

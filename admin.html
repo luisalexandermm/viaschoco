@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Vías del Chocó</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            color: white;
+        }
+        .status-buena { background-color: #10b981; }
+        .status-regular { background-color: #f59e0b; }
+        .status-mala { background-color: #ef4444; }
+        .status-cerrada { background-color: #6b7280; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        function AdminApp() {
+            const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+            const [isAdmin, setIsAdmin] = React.useState(false);
+            const [adminUser, setAdminUser] = React.useState('');
+            const [tab, setTab] = React.useState('reports');
+            const [reports, setReports] = React.useState([]);
+            const [users, setUsers] = React.useState([]);
+            const [loading, setLoading] = React.useState(false);
+            const [error, setError] = React.useState('');
+            const [checking, setChecking] = React.useState(true);
+
+            // Verificar si el usuario está autenticado y es admin
+            React.useEffect(() => {
+                const stored = localStorage.getItem('currentUser');
+                console.log('Verificando acceso. Usuario guardado:', stored);
+                
+                if (!stored) {
+                    console.log('No hay usuario en localStorage');
+                    setError('No estás autenticado. Debes iniciar sesión primero.');
+                    setChecking(false);
+                    return;
+                }
+
+                const userEmail = stored.toLowerCase();
+                const emailParts = userEmail.split('@');
+                const isAdminUser = emailParts[0] === 'admin';
+
+                console.log('Email:', userEmail, '| Partes:', emailParts, '| Es Admin:', isAdminUser);
+
+                if (!isAdminUser) {
+                    console.log('Usuario no es admin');
+                    setError('⚠️ Solo administradores pueden acceder a este panel.');
+                    setChecking(false);
+                    return;
+                }
+
+                console.log('Usuario autenticado como admin:', stored);
+                setAdminUser(stored);
+                setIsAdmin(true);
+                setIsAuthenticated(true);
+                setError('');
+                setChecking(false);
+                loadData();
+            }, []);
+
+            // Cargar datos del servidor
+            const loadData = async () => {
+                setLoading(true);
+                try {
+                    const [reportsRes, usersRes] = await Promise.all([
+                        fetch('http://localhost:3000/api/reports'),
+                        fetch('http://localhost:3000/api/users')
+                    ]);
+                    if (reportsRes.ok) setReports(await reportsRes.json());
+                    if (usersRes.ok) setUsers(await usersRes.json());
+                    console.log('Datos cargados correctamente');
+                } catch (err) {
+                    console.error('Error cargando datos:', err);
+                    setError('Error al conectar con el servidor: ' + err.message);
+                }
+                setLoading(false);
+            };
+
+            // Admin actions
+            const approveToggle = async (id) => {
+                const report = reports.find(r => r.id === id);
+                const updated = { ...report, approved: !report.approved };
+                try {
+                    const res = await fetch(`http://localhost:3000/api/reports/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(updated)
+                    });
+                    if (res.ok) {
+                        setReports(prev => prev.map(r => r.id === id ? updated : r));
+                    }
+                } catch (err) {
+                    setError('Error al actualizar: ' + err.message);
+                }
+            };
+
+            const deleteReport = async (id) => {
+                if (!confirm('¿Eliminar este reporte?')) return;
+                try {
+                    const res = await fetch(`http://localhost:3000/api/reports/${id}`, {
+                        method: 'DELETE'
+                    });
+                    if (res.ok) {
+                        setReports(prev => prev.filter(r => r.id !== id));
+                    }
+                } catch (err) {
+                    setError('Error al eliminar: ' + err.message);
+                }
+            };
+
+            const blockToggle = async (name) => {
+                const user = users.find(u => u.name === name);
+                const updated = { ...user, blocked: !user.blocked };
+                try {
+                    const res = await fetch(`http://localhost:3000/api/users/${name}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(updated)
+                    });
+                    if (res.ok) {
+                        setUsers(prev => prev.map(u => u.name === name ? updated : u));
+                    }
+                } catch (err) {
+                    setError('Error al actualizar usuario: ' + err.message);
+                }
+            };
+
+            if (checking) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
+                            <h1 className="text-3xl font-bold text-center mb-2">Vías del Chocó</h1>
+                            <p className="text-center text-gray-600 mb-8">Panel de Administración</p>
+                            <div className="flex flex-col gap-4 items-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                <p className="text-gray-600">Verificando acceso...</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (!isAuthenticated || !isAdmin) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
+                            <h1 className="text-3xl font-bold text-center mb-2">Vías del Chocó</h1>
+                            <p className="text-center text-gray-600 mb-8">Panel de Administración</p>
+                            {error && (
+                                <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                                    {error}
+                                </div>
+                            )}
+                            <div className="flex flex-col gap-4 items-center">
+                                <a href="/" className="w-full px-4 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition text-center">
+                                    ← Volver a Inicio
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    {/* Header */}
+                    <div className="bg-white shadow">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+                            <div>
+                                <h1 className="text-3xl font-bold text-gray-900">Panel de Administración</h1>
+                                <p className="text-gray-600">Vías del Chocó • Logged as: {adminUser}</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    localStorage.removeItem('currentUser');
+                                    window.location.href = '/';
+                                }}
+                                className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition"
+                            >
+                                Cerrar Sesión
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Tabs */}
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                        {error && (
+                            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                                {error}
+                            </div>
+                        )}
+
+                        {/* Tab Navigation */}
+                        <div className="mb-6 border-b border-gray-200 flex gap-4">
+                            <button
+                                onClick={() => setTab('reports')}
+                                className={`px-4 py-3 font-semibold border-b-2 transition ${
+                                    tab === 'reports'
+                                        ? 'border-blue-600 text-blue-600'
+                                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                                📋 Reportes ({reports.length})
+                            </button>
+                            <button
+                                onClick={() => setTab('users')}
+                                className={`px-4 py-3 font-semibold border-b-2 transition ${
+                                    tab === 'users'
+                                        ? 'border-blue-600 text-blue-600'
+                                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                                👥 Usuarios ({users.length})
+                            </button>
+                            <button
+                                onClick={() => setTab('stats')}
+                                className={`px-4 py-3 font-semibold border-b-2 transition ${
+                                    tab === 'stats'
+                                        ? 'border-blue-600 text-blue-600'
+                                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                                📊 Estadísticas
+                            </button>
+                        </div>
+
+                        {/* Reports Tab */}
+                        {tab === 'reports' && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-4">Reportes Recientes</h2>
+                                {loading ? (
+                                    <p className="text-gray-600">Cargando...</p>
+                                ) : reports.length === 0 ? (
+                                    <p className="text-gray-600">No hay reportes.</p>
+                                ) : (
+                                    <div className="grid gap-4">
+                                        {reports.map(r => (
+                                            <div key={r.id} className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div className="flex-1">
+                                                        <h3 className="text-lg font-bold">{r.title}</h3>
+                                                        <p className="text-sm text-gray-600">{r.location}</p>
+                                                    </div>
+                                                    <span className={`status-badge status-${r.status.toLowerCase()}`}>
+                                                        {r.status}
+                                                    </span>
+                                                </div>
+
+                                                <p className="text-gray-700 mb-3">{r.message}</p>
+
+                                                <div className="text-xs text-gray-500 mb-4 space-y-1">
+                                                    <p><strong>Usuario:</strong> {r.user}</p>
+                                                    <p><strong>Reportado:</strong> {r.time}</p>
+                                                    <p><strong>Recomendaciones:</strong> {r.rec || 'N/A'}</p>
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => approveToggle(r.id)}
+                                                        className={`px-4 py-2 rounded font-semibold transition ${
+                                                            r.approved
+                                                                ? 'bg-green-500 text-white hover:bg-green-600'
+                                                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                        }`}
+                                                    >
+                                                        {r.approved ? '✓ Aprobado' : 'Aprobar'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteReport(r.id)}
+                                                        className="px-4 py-2 bg-red-500 text-white rounded font-semibold hover:bg-red-600 transition"
+                                                    >
+                                                        🗑️ Eliminar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Users Tab */}
+                        {tab === 'users' && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-4">Usuarios Registrados</h2>
+                                {loading ? (
+                                    <p className="text-gray-600">Cargando...</p>
+                                ) : users.length === 0 ? (
+                                    <p className="text-gray-600">No hay usuarios.</p>
+                                ) : (
+                                    <div className="grid gap-4">
+                                        {users.map(u => (
+                                            <div key={u.name} className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+                                                <div>
+                                                    <h3 className="text-lg font-bold">{u.name}</h3>
+                                                    <p className="text-sm text-gray-600">
+                                                        Rol: <span className="font-semibold">{u.role || 'user'}</span> • 
+                                                        Estado: <span className={u.blocked ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
+                                                            {u.blocked ? 'Bloqueado' : 'Activo'}
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => blockToggle(u.name)}
+                                                    className={`px-4 py-2 rounded font-semibold transition ${
+                                                        u.blocked
+                                                            ? 'bg-green-500 text-white hover:bg-green-600'
+                                                            : 'bg-red-500 text-white hover:bg-red-600'
+                                                    }`}
+                                                >
+                                                    {u.blocked ? 'Desbloquear' : 'Bloquear'}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Stats Tab */}
+                        {tab === 'stats' && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-4">Estadísticas</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Reportes por Estado */}
+                                    <div className="bg-white rounded-lg shadow p-6">
+                                        <h3 className="text-lg font-bold mb-4">Reportes por Estado</h3>
+                                        <div className="space-y-3">
+                                            {Object.entries(
+                                                reports.reduce((acc, r) => {
+                                                    acc[r.status] = (acc[r.status] || 0) + 1;
+                                                    return acc;
+                                                }, {})
+                                            ).map(([status, count]) => (
+                                                <div key={status} className="flex items-center justify-between">
+                                                    <span className={`status-badge status-${status.toLowerCase()}`}>
+                                                        {status}
+                                                    </span>
+                                                    <span className="text-xl font-bold">{count}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Top Vías */}
+                                    <div className="bg-white rounded-lg shadow p-6">
+                                        <h3 className="text-lg font-bold mb-4">Vías con más Reportes</h3>
+                                        <div className="space-y-3">
+                                            {Object.entries(
+                                                reports.reduce((acc, r) => {
+                                                    acc[r.title] = (acc[r.title] || 0) + 1;
+                                                    return acc;
+                                                }, {})
+                                            )
+                                                .sort((a, b) => b[1] - a[1])
+                                                .slice(0, 5)
+                                                .map(([road, count]) => (
+                                                    <div key={road} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                                        <span className="font-semibold">{road}</span>
+                                                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">
+                                                            {count}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Resumen Total */}
+                                    <div className="bg-white rounded-lg shadow p-6">
+                                        <h3 className="text-lg font-bold mb-4">Resumen Total</h3>
+                                        <div className="space-y-2 text-lg">
+                                            <p>Total de reportes: <span className="font-bold text-blue-600">{reports.length}</span></p>
+                                            <p>Total de usuarios: <span className="font-bold text-blue-600">{users.length}</span></p>
+                                            <p>Reportes aprobados: <span className="font-bold text-green-600">{reports.filter(r => r.approved).length}</span></p>
+                                            <p>Usuarios bloqueados: <span className="font-bold text-red-600">{users.filter(u => u.blocked).length}</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<AdminApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
