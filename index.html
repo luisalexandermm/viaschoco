@@ -486,24 +486,21 @@ function ReportDetailsModal({ report, onClose }) {
 
 function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiAvailable }) {
   const [tab, setTab] = React.useState('reports');
-  const [editing, setEditing] = React.useState(null);
+  const [filter, setFilter] = React.useState('all'); // all, approved, pending
 
   const approveToggle = async (id) => {
     const report = reports.find(r => r.id === id);
     const updated = { ...report, approved: !report.approved };
     setReports(prev => prev.map(r => r.id === id ? updated : r));
 
-    // Enviar cambio al servidor
     if (apiAvailable) {
       try {
-  const res = await fetch(`/.netlify/functions/reports?id=${id}`, {
+        const res = await fetch(`/.netlify/functions/reports?id=${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updated)
         });
-        if (!res.ok) {
-          console.warn('Error al actualizar en servidor');
-        }
+        if (!res.ok) console.warn('Error al actualizar en servidor');
       } catch (err) {
         console.warn('Error de conexión:', err.message);
       }
@@ -514,15 +511,12 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
     if (!confirm('¿Eliminar este reporte?')) return;
     setReports(prev => prev.filter(r => r.id !== id));
 
-    // Enviar eliminación al servidor
     if (apiAvailable) {
       try {
-  const res = await fetch(`/.netlify/functions/reports?id=${id}`, {
+        const res = await fetch(`/.netlify/functions/reports?id=${id}`, {
           method: 'DELETE'
         });
-        if (!res.ok) {
-          console.warn('Error al eliminar en servidor');
-        }
+        if (!res.ok) console.warn('Error al eliminar en servidor');
       } catch (err) {
         console.warn('Error de conexión:', err.message);
       }
@@ -535,17 +529,14 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
     const updated = { ...r, message: newMsg };
     setReports(prev => prev.map(rep => rep.id === r.id ? updated : rep));
 
-    // Enviar cambio al servidor
     if (apiAvailable) {
       try {
-  const res = await fetch(`/.netlify/functions/reports?id=${r.id}`, {
+        const res = await fetch(`/.netlify/functions/reports?id=${r.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updated)
         });
-        if (!res.ok) {
-          console.warn('Error al actualizar en servidor');
-        }
+        if (!res.ok) console.warn('Error al actualizar en servidor');
       } catch (err) {
         console.warn('Error de conexión:', err.message);
       }
@@ -557,104 +548,226 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
     const updated = { ...user, blocked: !user.blocked };
     setUsers(prev => prev.map(u => u.name === name ? updated : u));
 
-    // Enviar cambio al servidor
     if (apiAvailable) {
       try {
-  const res = await fetch(`/.netlify/functions/users?name=${encodeURIComponent(name)}`, {
+        const res = await fetch(`/.netlify/functions/users?name=${encodeURIComponent(name)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updated)
         });
-        if (!res.ok) {
-          console.warn('Error al actualizar usuario en servidor');
-        }
+        if (!res.ok) console.warn('Error al actualizar usuario en servidor');
       } catch (err) {
         console.warn('Error de conexión:', err.message);
       }
     }
   };
 
-  // Estadísticas simples
+  // Estadísticas completas
   const stats = React.useMemo(() => {
+    const total = reports.length;
+    const approved = reports.filter(r => r.approved).length;
+    const pending = reports.filter(r => !r.approved).length;
     const byStatus = reports.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {});
     const byRoad = reports.reduce((acc, r) => { acc[r.title] = (acc[r.title] || 0) + 1; return acc; }, {});
-    const topRoads = Object.entries(byRoad).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    return { byStatus, topRoads };
-  }, [reports]);
+    const topRoads = Object.entries(byRoad).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const totalUsers = users.length;
+    const activeUsers = users.filter(u => !u.blocked).length;
+    const admins = users.filter(u => u.role === 'admin').length;
+    return { total, approved, pending, byStatus, topRoads, totalUsers, activeUsers, admins };
+  }, [reports, users]);
+
+  // Filtrar reportes según la pestaña
+  const filteredReports = React.useMemo(() => {
+    if (filter === 'approved') return reports.filter(r => r.approved);
+    if (filter === 'pending') return reports.filter(r => !r.approved);
+    return reports;
+  }, [reports, filter]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-auto">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition">✕</button>
-        <h2 className="text-2xl font-bold mb-4">Panel de Administración</h2>
-        <div className="mb-4">
-          <button onClick={()=>setTab('reports')} className={`px-3 py-1 mr-2 rounded ${tab==='reports' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Reportes</button>
-          <button onClick={()=>setTab('users')} className={`px-3 py-1 mr-2 rounded ${tab==='users' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Usuarios</button>
-          <button onClick={()=>setTab('stats')} className={`px-3 py-1 rounded ${tab==='stats' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Estadísticas</button>
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 overflow-auto">
+      <div className="bg-white w-full max-w-7xl min-h-screen md:min-h-auto md:max-h-[95vh] md:rounded-lg shadow-2xl relative flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white flex items-center justify-between sticky top-0">
+          <h1 className="text-3xl font-black">🛡️ Panel de Administración</h1>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition text-2xl">✕</button>
         </div>
 
-        {tab === 'reports' && (
-          <div>
-            <h3 className="font-semibold mb-3">Reportes recientes</h3>
-            <div className="grid gap-3">
-              {reports.map(r => (
-                <div key={r.id} className="p-3 border rounded flex items-start justify-between">
-                  <div>
-                    <div className="font-bold">{r.title} <span className="text-xs text-gray-500">{r.location}</span></div>
-                    <div className="text-sm text-gray-700">{r.message}</div>
-                    <div className="text-xs text-gray-400">Usuario: {r.user} · {r.time}</div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <button onClick={() => approveToggle(r.id)} className={`px-3 py-1 rounded ${r.approved ? 'bg-green-500 text-white' : 'bg-gray-100'}`}>{r.approved ? 'Aprobado' : 'Aprobar'}</button>
-                    <button onClick={() => editReport(r)} className="px-3 py-1 rounded bg-yellow-100">Editar</button>
-                    <button onClick={() => removeReport(r.id)} className="px-3 py-1 rounded bg-red-500 text-white">Eliminar</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Tabs */}
+        <div className="bg-gray-50 px-6 py-4 border-b flex gap-4 flex-wrap sticky top-16">
+          <button onClick={()=>{setTab('reports'); setFilter('all');}} className={`px-4 py-2 rounded-lg font-semibold transition ${tab==='reports' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>📋 Reportes</button>
+          <button onClick={()=>setTab('users')} className={`px-4 py-2 rounded-lg font-semibold transition ${tab==='users' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>👥 Usuarios</button>
+          <button onClick={()=>setTab('stats')} className={`px-4 py-2 rounded-lg font-semibold transition ${tab==='stats' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>📊 Estadísticas</button>
+        </div>
 
-        {tab === 'users' && (
-          <div>
-            <h3 className="font-semibold mb-3">Usuarios registrados</h3>
-            <div className="grid gap-2">
-              {users.map(u => (
-                <div key={u.name} className="p-3 border rounded flex items-center justify-between">
-                  <div>
-                    <div className="font-bold">{u.name}</div>
-                    <div className="text-xs text-gray-500">Rol: {u.role} · {u.blocked ? 'Bloqueado' : 'Activo'}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => blockToggle(u.name)} className={`px-3 py-1 rounded ${u.blocked ? 'bg-green-500 text-white' : 'bg-gray-100'}`}>{u.blocked ? 'Desbloquear' : 'Bloquear'}</button>
-                    <button onClick={() => setUsers(prev => prev.map(x => x.name===u.name ? {...x, role: x.role==='user' ? 'admin' : 'user'} : x))} className="px-3 py-1 rounded bg-blue-100">Cambiar rol</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {tab === 'stats' && (
-          <div>
-            <h3 className="font-semibold mb-3">Estadísticas</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-3 border rounded">
-                <h4 className="font-bold mb-2">Reportes por estado</h4>
-                {Object.entries(stats.byStatus).map(([k,v]) => (
-                  <div key={k} className="flex justify-between text-sm"><span>{k}</span><span>{v}</span></div>
-                ))}
+        {/* Contenido */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {tab === 'reports' && (
+            <div>
+              {/* Filtros */}
+              <div className="mb-6 flex gap-3">
+                <button onClick={()=>setFilter('all')} className={`px-4 py-2 rounded-lg ${filter==='all' ? 'bg-blue-100 text-blue-700 border-2 border-blue-600' : 'bg-gray-100 text-gray-700'}`}>Todos ({reports.length})</button>
+                <button onClick={()=>setFilter('pending')} className={`px-4 py-2 rounded-lg ${filter==='pending' ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-600' : 'bg-gray-100 text-gray-700'}`}>Pendientes ({reports.filter(r=>!r.approved).length})</button>
+                <button onClick={()=>setFilter('approved')} className={`px-4 py-2 rounded-lg ${filter==='approved' ? 'bg-green-100 text-green-700 border-2 border-green-600' : 'bg-gray-100 text-gray-700'}`}>Aprobados ({reports.filter(r=>r.approved).length})</button>
               </div>
-              <div className="p-3 border rounded">
-                <h4 className="font-bold mb-2">Vías con más reportes</h4>
-                {stats.topRoads.map(([name, count]) => (
-                  <div key={name} className="flex justify-between text-sm"><span>{name}</span><span>{count}</span></div>
-                ))}
+
+              {/* Lista de reportes con scroll */}
+              <div className="grid gap-4 max-h-96 overflow-y-auto pr-2">
+                {filteredReports.length > 0 ? (
+                  filteredReports.map(r => (
+                    <div key={r.id} className={`p-5 border-l-4 rounded-lg shadow-sm hover:shadow-md transition ${r.approved ? 'border-l-green-500 bg-green-50' : 'border-l-yellow-500 bg-yellow-50'}`}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-lg font-bold text-gray-800">{r.title}</h4>
+                            <span className={`text-xs px-2 py-1 rounded-full font-semibold ${r.approved ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'}`}>{r.approved ? '✓ Aprobado' : '⏳ Pendiente'}</span>
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{r.status || 'Normal'}</span>
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">📍 {r.location}</p>
+                          <p className="text-sm text-gray-700 mt-2">{r.message}</p>
+                          <div className="text-xs text-gray-500 mt-2">👤 {r.user} · 🕐 {r.time}</div>
+                          {r.files && r.files.length > 0 && <div className="text-xs text-gray-500 mt-1">📎 {r.files.length} archivo(s) adjunto(s)</div>}
+                        </div>
+                        <div className="flex flex-col gap-2 ml-4">
+                          <button onClick={() => approveToggle(r.id)} className={`px-3 py-1 text-sm rounded font-semibold transition ${r.approved ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-yellow-500 text-white hover:bg-yellow-600'}`}>{r.approved ? '✓ Aprobado' : 'Aprobar'}</button>
+                          <button onClick={() => editReport(r)} className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600 font-semibold transition">✏️ Editar</button>
+                          <button onClick={() => removeReport(r.id)} className="px-3 py-1 text-sm rounded bg-red-500 text-white hover:bg-red-600 font-semibold transition">🗑️ Eliminar</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    <p className="text-lg">📭 No hay reportes en esta categoría</p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
+          {tab === 'users' && (
+            <div>
+              <h3 className="text-2xl font-bold mb-6 text-gray-800">Gestión de Usuarios</h3>
+              <div className="grid gap-3 max-h-96 overflow-y-auto pr-2">
+                {users.map(u => (
+                  <div key={u.name} className={`p-4 rounded-lg border-2 flex items-center justify-between transition ${u.blocked ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50'}`}>
+                    <div>
+                      <div className="font-bold text-lg text-gray-800">{u.name}</div>
+                      <div className="text-sm text-gray-600">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-semibold mr-2 ${u.role === 'admin' ? 'bg-purple-200 text-purple-800' : 'bg-blue-200 text-blue-800'}`}>{u.role === 'admin' ? '👑 Administrador' : '👤 Usuario'}</span>
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${u.blocked ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}`}>{u.blocked ? '🚫 Bloqueado' : '✅ Activo'}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => blockToggle(u.name)} className={`px-4 py-2 rounded font-semibold transition ${u.blocked ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'} text-white`}>{u.blocked ? 'Desbloquear' : 'Bloquear'}</button>
+                      <button onClick={() => setUsers(prev => prev.map(x => x.name===u.name ? {...x, role: x.role==='user' ? 'admin' : 'user'} : x))} className="px-4 py-2 rounded bg-purple-500 hover:bg-purple-600 text-white font-semibold transition">Cambiar a {u.role === 'admin' ? 'Usuario' : 'Admin'}</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tab === 'stats' && (
+            <div>
+              <h3 className="text-2xl font-bold mb-6 text-gray-800">Estadísticas del Sistema</h3>
+              
+              {/* Tarjetas de resumen */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div className="p-6 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                  <div className="text-4xl font-black text-blue-600">{stats.total}</div>
+                  <div className="text-sm text-gray-600 mt-2">Total de reportes</div>
+                </div>
+                <div className="p-6 bg-green-50 border-2 border-green-200 rounded-lg">
+                  <div className="text-4xl font-black text-green-600">{stats.approved}</div>
+                  <div className="text-sm text-gray-600 mt-2">Reportes aprobados</div>
+                </div>
+                <div className="p-6 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
+                  <div className="text-4xl font-black text-yellow-600">{stats.pending}</div>
+                  <div className="text-sm text-gray-600 mt-2">Reportes pendientes</div>
+                </div>
+                <div className="p-6 bg-purple-50 border-2 border-purple-200 rounded-lg">
+                  <div className="text-4xl font-black text-purple-600">{stats.totalUsers}</div>
+                  <div className="text-sm text-gray-600 mt-2">Usuarios totales</div>
+                </div>
+              </div>
+
+              {/* Gráficos simples */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
+                  <h4 className="font-bold text-lg mb-4 text-gray-800">📊 Reportes por Estado</h4>
+                  {Object.entries(stats.byStatus).length > 0 ? (
+                    <div className="space-y-3">
+                      {Object.entries(stats.byStatus).map(([status, count]) => (
+                        <div key={status} className="flex items-center">
+                          <div className="flex-1">
+                            <div className="text-sm font-semibold text-gray-700">{status}</div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                              <div className="bg-blue-600 h-2 rounded-full" style={{width: `${(count/stats.total)*100}%`}}></div>
+                            </div>
+                          </div>
+                          <div className="ml-3 text-lg font-bold text-gray-800">{count}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-400">Sin datos</p>
+                  )}
+                </div>
+
+                <div className="p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
+                  <h4 className="font-bold text-lg mb-4 text-gray-800">🚗 Top Vías con Reportes</h4>
+                  {stats.topRoads.length > 0 ? (
+                    <div className="space-y-3">
+                      {stats.topRoads.map(([name, count], idx) => (
+                        <div key={name} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="text-lg font-bold text-blue-600">{idx+1}.</div>
+                            <div className="text-sm font-semibold text-gray-700">{name}</div>
+                          </div>
+                          <div className="text-lg font-bold text-gray-800">{count}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-400">Sin datos</p>
+                  )}
+                </div>
+
+                <div className="p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
+                  <h4 className="font-bold text-lg mb-4 text-gray-800">👥 Estado de Usuarios</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700">Usuarios activos</span>
+                      <span className="text-lg font-bold text-green-600">{stats.activeUsers}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700">Usuarios bloqueados</span>
+                      <span className="text-lg font-bold text-red-600">{stats.totalUsers - stats.activeUsers}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700">Administradores</span>
+                      <span className="text-lg font-bold text-purple-600">{stats.admins}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
+                  <h4 className="font-bold text-lg mb-4 text-gray-800">✅ Resumen General</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700">% de aprobación</span>
+                      <span className="text-lg font-bold text-blue-600">{stats.total > 0 ? Math.round((stats.approved/stats.total)*100) : 0}%</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700">Promedio por vía</span>
+                      <span className="text-lg font-bold text-gray-800">{stats.total > 0 ? (stats.total / (stats.topRoads.length || 1)).toFixed(1) : 0}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
