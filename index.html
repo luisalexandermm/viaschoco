@@ -584,128 +584,222 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
   }, [reports, filter]);
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 overflow-auto">
-      <div className="bg-white w-full max-w-7xl min-h-screen md:min-h-auto md:max-h-[95vh] md:rounded-lg shadow-2xl relative flex flex-col">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white flex items-center justify-between sticky top-0">
-          <h1 className="text-3xl font-black">🛡️ Panel de Administración</h1>
-          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition text-2xl">✕</button>
-        </div>
+    <div className="w-full min-h-screen bg-white flex flex-col">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 md:p-6 text-white flex items-center justify-between sticky top-0 z-50 shadow-lg">
+        <h1 className="text-2xl md:text-3xl font-black">🛡️ Panel de Administración</h1>
+        <button onClick={onClose} className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition text-2xl">✕</button>
+      </div>
 
-        {/* Tabs */}
-        <div className="bg-gray-50 px-6 py-4 border-b flex gap-4 flex-wrap sticky top-16">
-          <button onClick={()=>{setTab('reports'); setFilter('all');}} className={`px-4 py-2 rounded-lg font-semibold transition ${tab==='reports' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>📋 Reportes</button>
-          <button onClick={()=>setTab('users')} className={`px-4 py-2 rounded-lg font-semibold transition ${tab==='users' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>👥 Usuarios</button>
-          <button onClick={()=>setTab('stats')} className={`px-4 py-2 rounded-lg font-semibold transition ${tab==='stats' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>📊 Estadísticas</button>
-        </div>
+      {/* Tabs */}
+      <div className="bg-gray-50 px-3 md:px-6 py-3 md:py-4 border-b flex gap-2 md:gap-4 flex-wrap sticky top-16 overflow-x-auto z-40 shadow-sm">
+        <button onClick={()=>{setTab('reports'); setFilter('all');}} className={`px-3 md:px-4 py-2 rounded-lg font-semibold transition text-sm md:text-base whitespace-nowrap ${tab==='reports' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>📋 Reportes</button>
+        <button onClick={()=>setTab('users')} className={`px-3 md:px-4 py-2 rounded-lg font-semibold transition text-sm md:text-base whitespace-nowrap ${tab==='users' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>👥 Usuarios</button>
+        <button onClick={()=>setTab('stats')} className={`px-3 md:px-4 py-2 rounded-lg font-semibold transition text-sm md:text-base whitespace-nowrap ${tab==='stats' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>📊 Estadísticas</button>
+      </div>
 
-        {/* Contenido */}
-        <div className="flex-1 overflow-y-auto p-6">
+      {/* Contenido */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {tab === 'reports' && (
             <div>
-              {/* Filtros */}
-              <div className="mb-6 flex gap-3">
-                <button onClick={()=>setFilter('all')} className={`px-4 py-2 rounded-lg ${filter==='all' ? 'bg-blue-100 text-blue-700 border-2 border-blue-600' : 'bg-gray-100 text-gray-700'}`}>Todos ({reports.length})</button>
-                <button onClick={()=>setFilter('pending')} className={`px-4 py-2 rounded-lg ${filter==='pending' ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-600' : 'bg-gray-100 text-gray-700'}`}>Pendientes ({reports.filter(r=>!r.approved).length})</button>
-                <button onClick={()=>setFilter('approved')} className={`px-4 py-2 rounded-lg ${filter==='approved' ? 'bg-green-100 text-green-700 border-2 border-green-600' : 'bg-gray-100 text-gray-700'}`}>Aprobados ({reports.filter(r=>r.approved).length})</button>
+              {/* Encabezado con estadísticas rápidas */}
+              <div className="mb-8">
+                <h3 className="text-xl md:text-2xl font-bold mb-4 text-gray-800">📋 Gestión de Reportes</h3>
+                <div className="grid grid-cols-3 gap-3 md:gap-4">
+                  <div className="p-3 md:p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border-l-4 border-blue-600">
+                    <div className="text-2xl md:text-3xl font-bold text-blue-700">{reports.length}</div>
+                    <div className="text-xs md:text-sm text-gray-600 mt-1">Total</div>
+                  </div>
+                  <div className="p-3 md:p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg border-l-4 border-yellow-600">
+                    <div className="text-2xl md:text-3xl font-bold text-yellow-700">{reports.filter(r=>!r.approved).length}</div>
+                    <div className="text-xs md:text-sm text-gray-600 mt-1">Pendientes</div>
+                  </div>
+                  <div className="p-3 md:p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border-l-4 border-green-600">
+                    <div className="text-2xl md:text-3xl font-bold text-green-700">{reports.filter(r=>r.approved).length}</div>
+                    <div className="text-xs md:text-sm text-gray-600 mt-1">Aprobados</div>
+                  </div>
+                </div>
               </div>
 
-              {/* Lista de reportes con scroll */}
-              <div className="grid gap-4 max-h-96 overflow-y-auto pr-2">
-                {filteredReports.length > 0 ? (
-                  filteredReports.map(r => (
-                    <div key={r.id} className={`p-5 border-l-4 rounded-lg shadow-sm hover:shadow-md transition ${r.approved ? 'border-l-green-500 bg-green-50' : 'border-l-yellow-500 bg-yellow-50'}`}>
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-lg font-bold text-gray-800">{r.title}</h4>
-                            <span className={`text-xs px-2 py-1 rounded-full font-semibold ${r.approved ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'}`}>{r.approved ? '✓ Aprobado' : '⏳ Pendiente'}</span>
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{r.status || 'Normal'}</span>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">📍 {r.location}</p>
-                          <p className="text-sm text-gray-700 mt-2">{r.message}</p>
-                          <div className="text-xs text-gray-500 mt-2">👤 {r.user} · 🕐 {r.time}</div>
-                          {r.files && r.files.length > 0 && <div className="text-xs text-gray-500 mt-1">📎 {r.files.length} archivo(s) adjunto(s)</div>}
-                        </div>
-                        <div className="flex flex-col gap-2 ml-4">
-                          <button onClick={() => approveToggle(r.id)} className={`px-3 py-1 text-sm rounded font-semibold transition ${r.approved ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-yellow-500 text-white hover:bg-yellow-600'}`}>{r.approved ? '✓ Aprobado' : 'Aprobar'}</button>
-                          <button onClick={() => editReport(r)} className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600 font-semibold transition">✏️ Editar</button>
-                          <button onClick={() => removeReport(r.id)} className="px-3 py-1 text-sm rounded bg-red-500 text-white hover:bg-red-600 font-semibold transition">🗑️ Eliminar</button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-12 text-gray-400">
-                    <p className="text-lg">📭 No hay reportes en esta categoría</p>
-                  </div>
-                )}
+              {/* Filtros mejorados */}
+              <div className="mb-6 flex gap-2 flex-wrap">
+                <button onClick={()=>setFilter('all')} className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-semibold transition ${filter==='all' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>Todos</button>
+                <button onClick={()=>setFilter('pending')} className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-semibold transition ${filter==='pending' ? 'bg-yellow-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>Pendientes</button>
+                <button onClick={()=>setFilter('approved')} className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-semibold transition ${filter==='approved' ? 'bg-green-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>Aprobados</button>
+              </div>
+
+              {/* Tabla de reportes con mejor diseño */}
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div className="overflow-x-auto max-h-96 md:max-h-[500px] overflow-y-auto">
+                  <table className="w-full text-sm md:text-base">
+                    <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white sticky top-0">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-semibold">Vía</th>
+                        <th className="px-4 py-3 text-left font-semibold">Estado</th>
+                        <th className="px-4 py-3 text-left font-semibold">Usuario</th>
+                        <th className="px-4 py-3 text-left font-semibold">Ubicación</th>
+                        <th className="px-4 py-3 text-center font-semibold">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {filteredReports.length > 0 ? (
+                        filteredReports.map(r => (
+                          <tr key={r.id} className={`hover:bg-gray-50 transition ${r.approved ? 'bg-green-50/30' : 'bg-yellow-50/20'}`}>
+                            <td className="px-4 py-3 font-semibold text-gray-800 truncate">{r.title}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-block w-3 h-3 rounded-full ${r.approved ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                                <span className={`text-xs md:text-sm font-semibold ${r.approved ? 'text-green-700' : 'text-yellow-700'}`}>
+                                  {r.approved ? 'Aprobado' : 'Pendiente'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-gray-700 text-xs md:text-sm">{r.user}</td>
+                            <td className="px-4 py-3 text-gray-600 text-xs md:text-sm truncate">{r.location}</td>
+                            <td className="px-4 py-3 text-center">
+                              <div className="flex justify-center gap-2 flex-wrap">
+                                <button onClick={() => approveToggle(r.id)} className={`px-2 md:px-3 py-1 text-xs rounded font-semibold transition ${r.approved ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-yellow-500 text-white hover:bg-yellow-600'}`} title={r.approved ? 'Rechazar' : 'Aprobar'}>
+                                  {r.approved ? '✓' : '⏳'}
+                                </button>
+                                <button onClick={() => editReport(r)} className="px-2 md:px-3 py-1 text-xs rounded bg-blue-500 text-white hover:bg-blue-600 font-semibold transition" title="Editar">✏️</button>
+                                <button onClick={() => removeReport(r.id)} className="px-2 md:px-3 py-1 text-xs rounded bg-red-500 text-white hover:bg-red-600 font-semibold transition" title="Eliminar">🗑️</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="5" className="px-4 py-12 text-center text-gray-400">
+                            <p className="text-lg">📭 No hay reportes en esta categoría</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
           {tab === 'users' && (
             <div>
-              <h3 className="text-2xl font-bold mb-6 text-gray-800">Gestión de Usuarios</h3>
-              <div className="grid gap-3 max-h-96 overflow-y-auto pr-2">
-                {users.map(u => (
-                  <div key={u.name} className={`p-4 rounded-lg border-2 flex items-center justify-between transition ${u.blocked ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50'}`}>
-                    <div>
-                      <div className="font-bold text-lg text-gray-800">{u.name}</div>
-                      <div className="text-sm text-gray-600">
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-semibold mr-2 ${u.role === 'admin' ? 'bg-purple-200 text-purple-800' : 'bg-blue-200 text-blue-800'}`}>{u.role === 'admin' ? '👑 Administrador' : '👤 Usuario'}</span>
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${u.blocked ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}`}>{u.blocked ? '🚫 Bloqueado' : '✅ Activo'}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => blockToggle(u.name)} className={`px-4 py-2 rounded font-semibold transition ${u.blocked ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'} text-white`}>{u.blocked ? 'Desbloquear' : 'Bloquear'}</button>
-                      <button onClick={() => setUsers(prev => prev.map(x => x.name===u.name ? {...x, role: x.role==='user' ? 'admin' : 'user'} : x))} className="px-4 py-2 rounded bg-purple-500 hover:bg-purple-600 text-white font-semibold transition">Cambiar a {u.role === 'admin' ? 'Usuario' : 'Admin'}</button>
-                    </div>
+              <div className="mb-8">
+                <h3 className="text-xl md:text-2xl font-bold mb-4 text-gray-800">👥 Gestión de Usuarios</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                  <div className="p-3 md:p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border-l-4 border-blue-600">
+                    <div className="text-2xl md:text-3xl font-bold text-blue-700">{users.length}</div>
+                    <div className="text-xs md:text-sm text-gray-600 mt-1">Total</div>
                   </div>
-                ))}
+                  <div className="p-3 md:p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border-l-4 border-green-600">
+                    <div className="text-2xl md:text-3xl font-bold text-green-700">{users.filter(u => !u.blocked).length}</div>
+                    <div className="text-xs md:text-sm text-gray-600 mt-1">Activos</div>
+                  </div>
+                  <div className="p-3 md:p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-lg border-l-4 border-red-600">
+                    <div className="text-2xl md:text-3xl font-bold text-red-700">{users.filter(u => u.blocked).length}</div>
+                    <div className="text-xs md:text-sm text-gray-600 mt-1">Bloqueados</div>
+                  </div>
+                  <div className="p-3 md:p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border-l-4 border-purple-600">
+                    <div className="text-2xl md:text-3xl font-bold text-purple-700">{users.filter(u => u.role === 'admin').length}</div>
+                    <div className="text-xs md:text-sm text-gray-600 mt-1">Admins</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabla de usuarios */}
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div className="overflow-x-auto max-h-96 md:max-h-[500px] overflow-y-auto">
+                  <table className="w-full text-sm md:text-base">
+                    <thead className="bg-gradient-to-r from-purple-600 to-purple-700 text-white sticky top-0">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-semibold">Nombre</th>
+                        <th className="px-4 py-3 text-left font-semibold">Rol</th>
+                        <th className="px-4 py-3 text-left font-semibold">Estado</th>
+                        <th className="px-4 py-3 text-center font-semibold">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {users.map(u => (
+                        <tr key={u.name} className={`hover:bg-gray-50 transition ${u.blocked ? 'bg-red-50/30' : 'bg-green-50/30'}`}>
+                          <td className="px-4 py-3 font-semibold text-gray-800">{u.name}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                              {u.role === 'admin' ? '👑 Admin' : '👤 Usuario'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-block w-3 h-3 rounded-full ${u.blocked ? 'bg-red-500' : 'bg-green-500'}`}></span>
+                              <span className={`text-xs md:text-sm font-semibold ${u.blocked ? 'text-red-700' : 'text-green-700'}`}>
+                                {u.blocked ? 'Bloqueado' : 'Activo'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex justify-center gap-2 flex-wrap">
+                              <button 
+                                onClick={() => blockToggle(u.name)} 
+                                className={`px-2 md:px-3 py-1 text-xs rounded font-semibold transition ${u.blocked ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-red-500 text-white hover:bg-red-600'}`}
+                                title={u.blocked ? 'Desbloquear' : 'Bloquear'}
+                              >
+                                {u.blocked ? '🔓' : '🔒'}
+                              </button>
+                              <button 
+                                onClick={() => setUsers(prev => prev.map(x => x.name===u.name ? {...x, role: x.role==='user' ? 'admin' : 'user'} : x))} 
+                                className="px-2 md:px-3 py-1 text-xs rounded bg-purple-500 text-white hover:bg-purple-600 font-semibold transition"
+                                title={`Cambiar a ${u.role === 'admin' ? 'Usuario' : 'Admin'}`}
+                              >
+                                {u.role === 'admin' ? '⬇️' : '⬆️'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
           {tab === 'stats' && (
             <div>
-              <h3 className="text-2xl font-bold mb-6 text-gray-800">Estadísticas del Sistema</h3>
+              <h3 className="text-xl md:text-2xl font-bold mb-6 text-gray-800">Estadísticas del Sistema</h3>
               
               {/* Tarjetas de resumen */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div className="p-6 bg-blue-50 border-2 border-blue-200 rounded-lg">
-                  <div className="text-4xl font-black text-blue-600">{stats.total}</div>
-                  <div className="text-sm text-gray-600 mt-2">Total de reportes</div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-8">
+                <div className="p-4 md:p-6 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                  <div className="text-3xl md:text-4xl font-black text-blue-600">{stats.total}</div>
+                  <div className="text-xs md:text-sm text-gray-600 mt-2">Total de reportes</div>
                 </div>
-                <div className="p-6 bg-green-50 border-2 border-green-200 rounded-lg">
-                  <div className="text-4xl font-black text-green-600">{stats.approved}</div>
-                  <div className="text-sm text-gray-600 mt-2">Reportes aprobados</div>
+                <div className="p-4 md:p-6 bg-green-50 border-2 border-green-200 rounded-lg">
+                  <div className="text-3xl md:text-4xl font-black text-green-600">{stats.approved}</div>
+                  <div className="text-xs md:text-sm text-gray-600 mt-2">Reportes aprobados</div>
                 </div>
-                <div className="p-6 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
-                  <div className="text-4xl font-black text-yellow-600">{stats.pending}</div>
-                  <div className="text-sm text-gray-600 mt-2">Reportes pendientes</div>
+                <div className="p-4 md:p-6 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
+                  <div className="text-3xl md:text-4xl font-black text-yellow-600">{stats.pending}</div>
+                  <div className="text-xs md:text-sm text-gray-600 mt-2">Reportes pendientes</div>
                 </div>
-                <div className="p-6 bg-purple-50 border-2 border-purple-200 rounded-lg">
-                  <div className="text-4xl font-black text-purple-600">{stats.totalUsers}</div>
-                  <div className="text-sm text-gray-600 mt-2">Usuarios totales</div>
+                <div className="p-4 md:p-6 bg-purple-50 border-2 border-purple-200 rounded-lg">
+                  <div className="text-3xl md:text-4xl font-black text-purple-600">{stats.totalUsers}</div>
+                  <div className="text-xs md:text-sm text-gray-600 mt-2">Usuarios totales</div>
                 </div>
               </div>
 
               {/* Gráficos simples */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
-                  <h4 className="font-bold text-lg mb-4 text-gray-800">📊 Reportes por Estado</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                <div className="p-4 md:p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
+                  <h4 className="font-bold text-base md:text-lg mb-4 text-gray-800">📊 Reportes por Estado</h4>
                   {Object.entries(stats.byStatus).length > 0 ? (
                     <div className="space-y-3">
                       {Object.entries(stats.byStatus).map(([status, count]) => (
                         <div key={status} className="flex items-center">
                           <div className="flex-1">
-                            <div className="text-sm font-semibold text-gray-700">{status}</div>
+                            <div className="text-xs md:text-sm font-semibold text-gray-700">{status}</div>
                             <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                               <div className="bg-blue-600 h-2 rounded-full" style={{width: `${(count/stats.total)*100}%`}}></div>
                             </div>
                           </div>
-                          <div className="ml-3 text-lg font-bold text-gray-800">{count}</div>
+                          <div className="ml-3 text-base md:text-lg font-bold text-gray-800">{count}</div>
                         </div>
                       ))}
                     </div>
@@ -714,17 +808,17 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
                   )}
                 </div>
 
-                <div className="p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
-                  <h4 className="font-bold text-lg mb-4 text-gray-800">🚗 Top Vías con Reportes</h4>
+                <div className="p-4 md:p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
+                  <h4 className="font-bold text-base md:text-lg mb-4 text-gray-800">🚗 Top Vías con Reportes</h4>
                   {stats.topRoads.length > 0 ? (
                     <div className="space-y-3">
                       {stats.topRoads.map(([name, count], idx) => (
                         <div key={name} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="text-lg font-bold text-blue-600">{idx+1}.</div>
-                            <div className="text-sm font-semibold text-gray-700">{name}</div>
+                            <div className="text-base md:text-lg font-bold text-blue-600">{idx+1}.</div>
+                            <div className="text-xs md:text-sm font-semibold text-gray-700 truncate">{name}</div>
                           </div>
-                          <div className="text-lg font-bold text-gray-800">{count}</div>
+                          <div className="text-base md:text-lg font-bold text-gray-800">{count}</div>
                         </div>
                       ))}
                     </div>
@@ -733,34 +827,34 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
                   )}
                 </div>
 
-                <div className="p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
-                  <h4 className="font-bold text-lg mb-4 text-gray-800">👥 Estado de Usuarios</h4>
+                <div className="p-4 md:p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
+                  <h4 className="font-bold text-base md:text-lg mb-4 text-gray-800">👥 Estado de Usuarios</h4>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">Usuarios activos</span>
-                      <span className="text-lg font-bold text-green-600">{stats.activeUsers}</span>
+                      <span className="text-xs md:text-sm font-semibold text-gray-700">Usuarios activos</span>
+                      <span className="text-base md:text-lg font-bold text-green-600">{stats.activeUsers}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">Usuarios bloqueados</span>
-                      <span className="text-lg font-bold text-red-600">{stats.totalUsers - stats.activeUsers}</span>
+                      <span className="text-xs md:text-sm font-semibold text-gray-700">Usuarios bloqueados</span>
+                      <span className="text-base md:text-lg font-bold text-red-600">{stats.totalUsers - stats.activeUsers}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">Administradores</span>
-                      <span className="text-lg font-bold text-purple-600">{stats.admins}</span>
+                      <span className="text-xs md:text-sm font-semibold text-gray-700">Administradores</span>
+                      <span className="text-base md:text-lg font-bold text-purple-600">{stats.admins}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
-                  <h4 className="font-bold text-lg mb-4 text-gray-800">✅ Resumen General</h4>
+                <div className="p-4 md:p-6 bg-gray-50 border-2 border-gray-200 rounded-lg">
+                  <h4 className="font-bold text-base md:text-lg mb-4 text-gray-800">✅ Resumen General</h4>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">% de aprobación</span>
-                      <span className="text-lg font-bold text-blue-600">{stats.total > 0 ? Math.round((stats.approved/stats.total)*100) : 0}%</span>
+                      <span className="text-xs md:text-sm font-semibold text-gray-700">% de aprobación</span>
+                      <span className="text-base md:text-lg font-bold text-blue-600">{stats.total > 0 ? Math.round((stats.approved/stats.total)*100) : 0}%</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">Promedio por vía</span>
-                      <span className="text-lg font-bold text-gray-800">{stats.total > 0 ? (stats.total / (stats.topRoads.length || 1)).toFixed(1) : 0}</span>
+                      <span className="text-xs md:text-sm font-semibold text-gray-700">Promedio por vía</span>
+                      <span className="text-base md:text-lg font-bold text-gray-800">{stats.total > 0 ? (stats.total / (stats.topRoads.length || 1)).toFixed(1) : 0}</span>
                     </div>
                   </div>
                 </div>
@@ -768,9 +862,62 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
             </div>
           )}
         </div>
+
+        {/* Footer */}
+        <footer className="bg-gray-900 text-white py-8 md:py-10 mt-auto border-t border-gray-700">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mb-6 md:mb-8">
+              {/* Sobre */}
+              <div>
+                <h4 className="text-base md:text-lg font-bold mb-3">Sobre Nosotros</h4>
+                <p className="text-gray-400 text-xs md:text-sm">Vías del Chocó: Información vial en tiempo real para mejorar la seguridad.</p>
+              </div>
+
+              {/* Enlaces */}
+              <div>
+                <h4 className="text-base md:text-lg font-bold mb-3">Enlaces</h4>
+                <ul className="space-y-1 md:space-y-2 text-gray-400 text-xs md:text-sm">
+                  <li><button className="hover:text-white transition">Sobre Nosotros</button></li>
+                  <li><a href="#" className="hover:text-white transition">Términos de Uso</a></li>
+                  <li><a href="#" className="hover:text-white transition">Privacidad</a></li>
+                </ul>
+              </div>
+
+              {/* Contacto */}
+              <div>
+                <h4 className="text-base md:text-lg font-bold mb-3">Contacto</h4>
+                <p className="text-gray-400 text-xs md:text-sm mb-2">
+                  📧 <a href="mailto:Alrxandermaturana76@gmail.com" className="text-gray-400 hover:text-blue-400 transition">
+                    Alrxandermaturana76@gmail.com
+                  </a>
+                </p>
+                <p className="text-gray-400 text-xs md:text-sm mb-2">
+                  📞 <a href="https://wa.me/573145312045" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-green-500 transition">
+                    +57 314 531 2045
+                  </a>
+                </p>
+                <p className="text-gray-400 text-xs md:text-sm">📍 Quibdó, Chocó</p>
+              </div>
+
+              {/* Redes Sociales */}
+              <div>
+                <h4 className="text-base md:text-lg font-bold mb-3">Síguenos</h4>
+                <div className="flex gap-4">
+                  <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition text-lg md:text-xl">f</a>
+                  <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition text-lg md:text-xl">𝕏</a>
+                  <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-pink-400 hover:text-pink-300 transition text-lg md:text-xl">📷</a>
+                </div>
+              </div>
+            </div>
+
+            <hr className="border-gray-700 mb-4 md:mb-6" />
+            <div className="text-center text-gray-400 text-xs md:text-sm">
+              <p>&copy; 2025 Vías del Chocó. Realizado por <span className="text-blue-400 font-bold">luisito</span> | Todos los derechos reservados.</p>
+            </div>
+          </div>
+        </footer>
       </div>
-    </div>
-  );
+    );
 }
 
 function App() {
@@ -793,7 +940,8 @@ function App() {
     return uniq;
   });
   const [highlightReportId, setHighlightReportId] = React.useState(null);
-  const [showAdminPanel, setShowAdminPanel] = React.useState(false);
+  // SPA view: 'main' | 'admin'
+  const [view, setView] = React.useState('main');
   const [mapClickMode, setMapClickMode] = React.useState(false); // true cuando el usuario activa 'marcar en mapa'
   const [pendingCoords, setPendingCoords] = React.useState(null); // {lat,lng} seleccionadas desde el mapa
   const [apiAvailable, setApiAvailable] = React.useState(false); // true si el servidor está disponible
@@ -803,12 +951,29 @@ function App() {
   React.useEffect(() => {
     const loadFromServer = async () => {
       try {
-  const res = await fetch('/.netlify/functions/reports');
-        if (res.ok) {
-          const data = await res.json();
-          setReports(data);
-          setApiAvailable(true);
+        // Primero comprobar health para saber si Neon/Netlify Functions están disponibles
+        const healthRes = await fetch('/.netlify/functions/health');
+        if (healthRes.ok) {
+          const h = await healthRes.json();
+          if (h && h.ok) {
+            setApiAvailable(true);
+            // Si está disponible, cargar reportes reales
+            try {
+              const res = await fetch('/.netlify/functions/reports');
+              if (res.ok) {
+                const data = await res.json();
+                setReports(data);
+              } else {
+                console.warn('No se pudo obtener reportes desde el servidor:', res.statusText);
+              }
+            } catch (err) {
+              console.warn('Error obteniendo reportes:', err.message);
+            }
+            return;
+          }
         }
+        // Si llegamos aquí, health falló o no devolvió ok
+        setApiAvailable(false);
       } catch (err) {
         console.warn('Servidor no disponible, usando datos en memoria:', err.message);
         setApiAvailable(false);
@@ -936,7 +1101,9 @@ function App() {
             onClose={() => setShowLogin(false)} 
             onShowRegister={() => { setShowLogin(false); setShowRegister(true); }}
             onLogin={(email) => { 
-              const isAdminUser = String(email).toLowerCase().split('@')[0] === 'admin';
+              const localPart = String(email).toLowerCase().split('@')[0] || '';
+              // Admin if local-part equals 'admin' or ends with '.admin' (e.g. nombre.admin@...)
+              const isAdminUser = localPart === 'admin' || localPart.endsWith('.admin');
               setIsAuthenticated(true); 
               setUserName(email); 
               setIsAdmin(isAdminUser);
@@ -949,7 +1116,8 @@ function App() {
           <RegisterModal 
             onClose={() => setShowRegister(false)}
             onRegister={(name, email) => { 
-              const isAdminUser = String(email).toLowerCase().split('@')[0] === 'admin';
+              const localPart = String(email).toLowerCase().split('@')[0] || '';
+              const isAdminUser = localPart === 'admin' || localPart.endsWith('.admin');
               setIsAuthenticated(true); 
               setUserName(name); 
               setIsAdmin(isAdminUser);
@@ -974,6 +1142,16 @@ function App() {
   }
 
   // Si autenticado, muestra contenido principal
+  // Si es admin y quiere ver el panel, mostrar la subpágina admin en lugar del contenido principal
+  if (view === 'admin') {
+    return (
+      <div className="app min-h-screen bg-white">
+        <AdminPanel reports={reports} setReports={setReports} users={users} setUsers={setUsers} roads={roads} onClose={()=>setView('main')} apiAvailable={apiAvailable} />
+      </div>
+    );
+  }
+
+  // Vista principal (contenido normal cuando view === 'main')
   return (
     <div className="app min-h-screen bg-gray-50">
       {/* Header con logo de fondo */}
@@ -995,9 +1173,9 @@ function App() {
             <div className="w-px h-6 bg-gray-300"></div>
             <div className="flex items-center gap-3">
               <span className="text-sm font-semibold text-gray-700">{userName}</span>
-              {isAdmin && (
-                <button onClick={()=>setShowAdminPanel(true)} className="font-semibold px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition inline-block">Panel Admin</button>
-              )}
+                    {isAdmin && (
+                      <button onClick={()=>setView('admin')} className="font-semibold px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition inline-block">Panel Admin</button>
+                    )}
               <button onClick={()=>{setIsAuthenticated(false); setShowMenu(false);}} className="font-bold px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition">Cerrar Sesión</button>
             </div>
           </div>
@@ -1016,7 +1194,7 @@ function App() {
                   <p className="text-xs text-gray-500 mb-2">Sesión: <span className="font-semibold text-gray-700">{userName}</span></p>
                 </div>
                 {isAdmin && (
-                  <button onClick={()=>{ setShowAdminPanel(true); setShowMenu(false); }} className="font-semibold px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition text-left mb-2 inline-block w-full text-center">Panel Admin</button>
+                  <button onClick={()=>{ setView('admin'); setShowMenu(false); }} className="font-semibold px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition text-left mb-2 inline-block w-full text-center">Panel Admin</button>
                 )}
                 <button onClick={()=>{setIsAuthenticated(false); setShowMenu(false);}} className="font-bold px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition text-left">🚪 Cerrar Sesión</button>
               </div>
@@ -1145,9 +1323,6 @@ function App() {
         )}
         {/* Modal de detalles de reporte */}
         <ReportDetailsModal report={showDetails} onClose={()=>setShowDetails(null)} />
-        {showAdminPanel && (
-          <AdminPanel reports={reports} setReports={setReports} users={users} setUsers={setUsers} roads={roads} onClose={()=>setShowAdminPanel(false)} apiAvailable={apiAvailable} />
-        )}
       </main>
 
       {/* Modal de Reporte */}

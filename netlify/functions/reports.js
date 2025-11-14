@@ -26,12 +26,23 @@ exports.handler = async function handler(event) {
 
     if (method === 'POST') {
       const body = JSON.parse(event.body || '{}');
+      // Asegurarnos de que `files` se inserte como JSONB en la base de datos
+      const filesVal = body.files ? JSON.stringify(body.files) : null;
       const result = await sql`
         INSERT INTO reports(title, road, location, message, "user", "time", lat, lng, approved, status, files)
-        VALUES(${body.title || null}, ${body.road || null}, ${body.location || null}, 
-               ${body.message || null}, ${body.user || null}, ${body.time || null}, 
-               ${body.lat || null}, ${body.lng || null}, ${body.approved === true}, 
-               ${body.status || null}, ${JSON.stringify(body.files) || null})
+        VALUES(
+          ${body.title || null},
+          ${body.road || null},
+          ${body.location || null},
+          ${body.message || null},
+          ${body.user || null},
+          ${body.time || null},
+          ${body.lat || null},
+          ${body.lng || null},
+          ${body.approved === true},
+          ${body.status || null},
+          ${filesVal}::jsonb
+        )
         RETURNING *
       `;
       return {
@@ -52,9 +63,19 @@ exports.handler = async function handler(event) {
       let queryStr = 'UPDATE reports SET ';
       const params = [];
       entries.forEach((kv, idx) => {
-        params.push(kv[1]);
+        const key = kv[0];
+        let val = kv[1];
+        // si actualizan 'files', guardamos su JSON como string y aplicamos casteo a jsonb
+        if (key === 'files') {
+          val = val ? JSON.stringify(val) : null;
+        }
+        params.push(val);
         if (idx > 0) queryStr += ', ';
-        queryStr += `"${kv[0]}" = $${idx + 1}`;
+        if (key === 'files') {
+          queryStr += `"${key}" = $${idx + 1}::jsonb`;
+        } else {
+          queryStr += `"${key}" = $${idx + 1}`;
+        }
       });
       queryStr += ` WHERE id = ${id} RETURNING *`;
       
