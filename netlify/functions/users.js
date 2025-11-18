@@ -3,6 +3,24 @@ const { neon } = require('@netlify/neon');
 // Automatically uses NETLIFY_DATABASE_URL or DATABASE_URL from environment
 const sql = neon(process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL);
 
+// Ensure default admin exists
+(async () => {
+  try {
+    const adminEmail = 'alrxandermarturana76@gmail.com';
+    const existingAdmin = await sql`SELECT * FROM users WHERE email = ${adminEmail}`;
+
+    if (existingAdmin.length === 0) {
+      await sql`
+        INSERT INTO users (name, email, blocked, role)
+        VALUES ('Admin', ${adminEmail}, false, 'admin')
+      `;
+      console.log('Default admin created:', adminEmail);
+    }
+  } catch (error) {
+    console.error('Error ensuring default admin:', error);
+  }
+})();
+
 exports.handler = async function handler(event) {
   const method = event.httpMethod;
   const qs = event.queryStringParameters || {};

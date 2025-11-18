@@ -53,13 +53,33 @@ const roadCoords = {
 };
  
 function LoginModal({ onClose, onShowRegister, onLogin }) {
-  function handleSubmit(e){
+  async function handleSubmit(e) {
     e.preventDefault();
     const form = e.target;
     const email = form.email.value.trim();
     const pass = form.password.value.trim();
-    if(!email || !pass){ alert('Ingresa correo y contraseña'); return; }
-    onLogin(email);
+
+    if (!email || !pass) {
+      alert('Ingresa correo y contraseña');
+      return;
+    }
+
+    const response = await fetch('/.netlify/functions/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+
+    if (response.ok) {
+      const user = await response.json();
+      if (user.exists) {
+        onLogin(email);
+      } else {
+        alert('El usuario no está registrado. Por favor, regístrate primero.');
+      }
+    } else {
+      alert('Error al verificar el usuario. Intenta nuevamente.');
+    }
   }
 
   return (
@@ -1340,6 +1360,13 @@ function App() {
             <h2 className="text-2xl md:text-3xl font-bold mb-6 pr-8" style={{color:'#030213'}}>Hacer Reporte</h2>
             <form onSubmit={async (e) => {
               e.preventDefault();
+              
+              // Validar que se haya seleccionado una ubicación en el mapa
+              if (!selectedCoords || !selectedCoords.lat || !selectedCoords.lng) {
+                alert('Por favor, selecciona la ubicación en el mapa primero');
+                return;
+              }
+              
               const form = e.target;
               const filesInput = form.files;
               const files = Array.from(filesInput.files || []);
@@ -1359,9 +1386,6 @@ function App() {
                 });
               }
               
-              const lat = parseFloat(form.latitude.value);
-              const lng = parseFloat(form.longitude.value);
-              
               handleNewReport({
                 title: form.road.options[form.road.selectedIndex].text,
                 road: form.road.value,
@@ -1369,8 +1393,8 @@ function App() {
                 location: form.location.value,
                 message: form.comment.value,
                 rec: form.recommendations.value,
-                lat: lat || null,
-                lng: lng || null,
+                lat: selectedCoords.lat,
+                lng: selectedCoords.lng,
                 files: filesData
               });
             }} className="space-y-4">
@@ -1393,29 +1417,40 @@ function App() {
                 </select>
               </div>
 
+              {/* Sección de ubicación en el mapa - PRIMERO */}
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border-2 border-blue-300">
+                <h3 className="text-base font-bold mb-2" style={{color:'#030213'}}>📍 Paso 1: Selecciona la Ubicación en el Mapa</h3>
+                <p className="text-xs md:text-sm text-gray-600 mb-3">Haz clic en el mapa para marcar exactamente dónde está el problema. El sistema capturará automáticamente las coordenadas.</p>
+                
+                {selectedCoords ? (
+                  <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded">
+                    <p className="text-sm font-semibold text-green-800">✓ Ubicación capturada</p>
+                    <p className="text-xs text-gray-600 mt-1">Lat: {selectedCoords.lat?.toFixed(4)} | Lon: {selectedCoords.lng?.toFixed(4)}</p>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded">
+                    <p className="text-sm font-semibold text-yellow-800">⚠️ Ubicación no seleccionada</p>
+                    <p className="text-xs text-gray-600 mt-1">Presiona el botón de abajo y luego haz clic en el mapa</p>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setMapClickMode(!mapClickMode)}
+                  className={`w-full mt-3 px-4 py-3 rounded-lg font-bold transition text-sm md:text-base ${
+                    mapClickMode 
+                      ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'
+                  }`}
+                >
+                  {mapClickMode ? '❌ CANCELAR - Presiona de nuevo para salir' : '🗺️ ACTIVAR SELECCIÓN EN MAPA'}
+                </button>
+              </div>
+
               <div>
                 <label htmlFor="report-location" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Ubicación Específica (Kilómetro)</label>
                 <input type="text" id="report-location" name="location" placeholder="Ej: Km 45 - 48" className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}} />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="report-latitude" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Latitud</label>
-                  <input type="number" id="report-latitude" name="latitude" placeholder="5.6929" step="0.0001" defaultValue={selectedCoords?.lat || ''} className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}} />
-                </div>
-                <div>
-                  <label htmlFor="report-longitude" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Longitud</label>
-                  <input type="number" id="report-longitude" name="longitude" placeholder="-75.7519" step="0.0001" defaultValue={selectedCoords?.lng || ''} className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}} />
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setMapClickMode(!mapClickMode)}
-                className={`w-full px-4 py-2 rounded-lg font-semibold transition ${mapClickMode ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
-              >
-                {mapClickMode ? '❌ Cancelar Selección en Mapa' : '📍 Seleccionar en Mapa'}
-              </button>
 
               <div>
                 <label htmlFor="report-comment" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Descripción del Estado</label>
