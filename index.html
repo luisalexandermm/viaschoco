@@ -64,6 +64,12 @@ function LoginModal({ onClose, onShowRegister, onLogin }) {
       return;
     }
 
+    // Acceso directo para el administrador
+    if (email === 'alrxandermarturana76@gmail.com') {
+      onLogin(email, 'admin');
+      return;
+    }
+
     const response = await fetch('/.netlify/functions/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -73,7 +79,7 @@ function LoginModal({ onClose, onShowRegister, onLogin }) {
     if (response.ok) {
       const user = await response.json();
       if (user.exists) {
-        onLogin(email);
+        onLogin(email, user.role);
       } else {
         alert('El usuario no está registrado. Por favor, regístrate primero.');
       }

@@ -37,15 +37,30 @@ exports.handler = async function handler(event) {
 
     if (method === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const result = await sql`
-        INSERT INTO users(name, email, blocked, role)
-        VALUES(${body.name || null}, ${body.email || null}, ${body.blocked === true}, ${body.role || 'user'})
-        RETURNING *
-      `;
-      return {
-        statusCode: 201,
-        body: JSON.stringify(result[0])
-      };
+      const { email, password } = body;
+
+      // Verificar si el usuario existe
+      const user = await sql`SELECT * FROM users WHERE email = ${email}`;
+
+      if (user.length > 0) {
+        // Validar contraseña (en este caso, sin hashing por simplicidad)
+        if (user[0].password === password) {
+          return {
+            statusCode: 200,
+            body: JSON.stringify({ exists: true, role: user[0].role })
+          };
+        } else {
+          return {
+            statusCode: 401,
+            body: JSON.stringify({ error: 'Contraseña incorrecta' })
+          };
+        }
+      } else {
+        return {
+          statusCode: 404,
+          body: JSON.stringify({ exists: false })
+        };
+      }
     }
 
     if (method === 'PUT') {
