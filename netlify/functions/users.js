@@ -6,13 +6,14 @@ const sql = neon(process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL);
 // Ensure default admin exists
 (async () => {
   try {
-    const adminEmail = 'alrxandermarturana76@gmail.com';
+    const adminEmail = 'alrxandermarturana76.admin@gmail.com';
+    const adminPassword = '3145312045La';
     const existingAdmin = await sql`SELECT * FROM users WHERE email = ${adminEmail}`;
 
     if (existingAdmin.length === 0) {
       await sql`
-        INSERT INTO users (name, email, blocked, role)
-        VALUES ('Admin', ${adminEmail}, false, 'admin')
+        INSERT INTO users (name, email, password, blocked, role)
+        VALUES ('Admin', ${adminEmail}, ${adminPassword}, false, 'admin')
       `;
       console.log('Default admin created:', adminEmail);
     }

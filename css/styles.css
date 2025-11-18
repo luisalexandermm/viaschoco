@@ -853,3 +853,13 @@ nav .nav-container {
         display: none;
     }
 }
+
+/* Asegurar que el mapa no se interponga en la sección "Sobre Nosotros" */
+#map {
+  z-index: 0; /* Asegura que el mapa esté detrás de otros elementos */
+}
+
+#about-section {
+  position: relative;
+  z-index: 10; /* Asegura que la sección "Sobre Nosotros" esté encima del mapa */
+}
