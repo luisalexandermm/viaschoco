@@ -38,7 +38,7 @@ exports.handler = async function handler(event) {
 
     if (method === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const { email, password } = body;
+      const { email, password, name } = body;
 
       // Verificar si el usuario existe
       const user = await sql`SELECT * FROM users WHERE email = ${email}`;
@@ -57,10 +57,22 @@ exports.handler = async function handler(event) {
           };
         }
       } else {
-        return {
-          statusCode: 404,
-          body: JSON.stringify({ exists: false })
-        };
+        // Si no existe, registrar el usuario
+        if (name && password) {
+          await sql`
+            INSERT INTO users (name, email, password, blocked, role)
+            VALUES (${name}, ${email}, ${password}, false, 'user')
+          `;
+          return {
+            statusCode: 201,
+            body: JSON.stringify({ exists: true, role: 'user' })
+          };
+        } else {
+          return {
+            statusCode: 404,
+            body: JSON.stringify({ exists: false })
+          };
+        }
       }
     }
 
