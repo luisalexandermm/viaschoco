@@ -856,7 +856,12 @@ nav .nav-container {
 
 /* Asegurar que el mapa no se interponga en la sección "Sobre Nosotros" */
 #map {
-  z-index: 0; /* Asegura que el mapa esté detrás de otros elementos */
+  position: absolute; /* Asegura que el mapa esté en el fondo */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1; /* Envía el mapa detrás de todos los elementos */
 }
 
 #about-section {

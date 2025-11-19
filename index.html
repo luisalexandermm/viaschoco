@@ -10,6 +10,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Tailwind CDN (para prototipos sin bundler) -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Turf.js para validación geográfica (point-in-polygon) -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
 </head>
 <body>
   <div id="app"></div>
@@ -156,7 +158,7 @@ function RegisterModal({ onClose, onRegister }){
     const email = form.email.value.trim();
     const pass = form.password.value.trim();
     if(!name || !email || !pass){ alert('Completa todos los campos'); return; }
-    onRegister(name, email);
+    onRegister(name, email, pass);
   }
 
   return (
@@ -302,6 +304,11 @@ function Report({ r, onViewDetails }) {
         <div className="inline-block px-3 py-1 rounded-full text-xs font-bold text-white" style={{backgroundColor: getBadgeColor(r.status)}}>
           {r.status}
         </div>
+        {r.outsideChoco && (
+          <div className="inline-block px-2 py-1 ml-2 rounded-full text-xs font-semibold text-white" style={{backgroundColor:'#6b7280'}}>
+            Fuera del Chocó
+          </div>
+        )}
       </div>
 
       <div className="mb-4 text-sm text-gray-700 bg-gray-50 rounded p-3" style={{borderLeft: `4px solid ${getBadgeColor(r.status)}`}}>
@@ -329,7 +336,9 @@ function MapComponent({ reports, highlightReportId, enableClickToSet, onMapClick
   // highlightReportId se manejará desde App mediante prop para abrir popup y centrar
   const propsRef = React.useRef({});
 
-  const getMarkerColor = (status) => {
+  const getMarkerColor = (report) => {
+    if (report && report.outsideChoco) return '#6b7280'; // gris para fuera del Chocó
+    const status = report && report.status ? report.status : report;
     switch(status) {
       case 'Buena': return '#22c55e';
       case 'Regular': return '#eab308';
@@ -389,7 +398,7 @@ function MapComponent({ reports, highlightReportId, enableClickToSet, onMapClick
     reports.forEach(report => {
       if (report.lat && report.lng) {
         const marker = L.marker([report.lat, report.lng], {
-          icon: createMarkerIcon(getMarkerColor(report.status))
+          icon: createMarkerIcon(getMarkerColor(report))
         }).bindPopup(`
           <div style="font-size: 12px; width: 200px;">
             <strong>${report.title}</strong><br/>
@@ -489,6 +498,11 @@ function ReportDetailsModal({ report, onClose }) {
         <div className="mb-2">
           <span className="font-bold text-gray-700">Fecha:</span> {report.time}
         </div>
+        {report.outsideChoco && (
+          <div className="mb-2">
+            <span className="font-bold text-gray-700">Nota:</span> <span className="inline-block px-2 py-1 rounded text-white" style={{backgroundColor:'#6b7280'}}>Reporte fuera del área del Chocó</span>
+          </div>
+        )}
         {/* Mostrar foto/video si existe */}
         {report.files && report.files.length > 0 && (
           <div className="mt-4">
@@ -903,7 +917,7 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
               <div>
                 <h4 className="text-base md:text-lg font-bold mb-3">Enlaces</h4>
                 <ul className="space-y-1 md:space-y-2 text-gray-400 text-xs md:text-sm">
-                  <li><button className="hover:text-white transition">Sobre Nosotros</button></li>
+                  <li><button className="hover:text-white transition" onClick={() => { const el = document.getElementById('about-section'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }}>Sobre Nosotros</button></li>
                   <li><a href="#" className="hover:text-white transition">Términos de Uso</a></li>
                   <li><a href="#" className="hover:text-white transition">Privacidad</a></li>
                 </ul>
@@ -946,6 +960,53 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
     );
 }
 
+function AboutSection() {
+  return (
+    <section id="about-section" className="w-full max-w-3xl mx-auto my-12 p-8 bg-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-4" style={{color:'#030213'}}>Sobre Nosotros</h2>
+      <div className="mb-4">
+        <span className="font-semibold">Creador:</span> Luis Alexander Marturana
+      </div>
+      <div className="mb-4">
+        <span className="font-semibold">Carrera:</span> Ingeniería de Sistemas
+      </div>
+      <div className="mb-4">
+        <span className="font-semibold">Semestre:</span> 2°
+      </div>
+      <div className="mb-4">
+        <span className="font-semibold">Correo:</span> alrxandermarturana76.admin@gmail.com
+      </div>
+      <p className="text-gray-700 mb-2">
+        Vías del Chocó es una plataforma colaborativa para reportar y consultar el estado de las vías en tiempo real. Nuestro objetivo es mejorar la movilidad y seguridad de todos los viajeros y habitantes del departamento.
+      </p>
+      <p className="text-gray-700">
+        Puedes contribuir reportando incidentes, condiciones de la vía, y compartiendo información útil para la comunidad. ¡Juntos hacemos mejores caminos!
+      </p>
+    </section>
+  );
+}
+
+function Header() {
+  // ...existing code...
+  return (
+    <header className="w-full bg-white shadow-md py-4 px-6 flex justify-between items-center">
+      {/* ...otros elementos... */}
+      <nav>
+        <button
+          className="px-4 py-2 font-semibold text-blue-700 hover:underline"
+          onClick={() => {
+            const aboutSection = document.getElementById('about-section');
+            if (aboutSection) aboutSection.scrollIntoView({ behavior: 'smooth' });
+          }}
+        >
+          Sobre Nosotros
+        </button>
+        {/* ...otros botones... */}
+      </nav>
+    </header>
+  );
+}
+
 function App() {
   const [showLogin, setShowLogin] = React.useState(false);
   const [showRegister, setShowRegister] = React.useState(false);
@@ -957,7 +1018,7 @@ function App() {
   const [reports, setReports] = React.useState(reportsData);
   const [activeTab, setActiveTab] = React.useState('all');
   const [showDetails, setShowDetails] = React.useState(null);
-  const [showAbout, setShowAbout] = React.useState(false);
+  // removed showAbout state: About section is now part of page flow
   const [recentReports, setRecentReports] = React.useState([]); // reportes hechos en la sesión
   const [showMenu, setShowMenu] = React.useState(false); // menú hamburguesa móvil
   const [users, setUsers] = React.useState(() => {
@@ -1010,6 +1071,40 @@ function App() {
 
   // Función para añadir reporte y actualizar vía si aplica
   const handleNewReport = async (reportData) => {
+    // Helper: validar si coordenadas están dentro de los límites aproximados del Chocó
+    // GeoJSON aproximado (rectángulo) del contorno del Chocó.
+    const chocoPolygon = {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [-78.5, 4.0],
+          [-75.0, 4.0],
+          [-75.0, 8.0],
+          [-78.5, 8.0],
+          [-78.5, 4.0]
+        ]]
+      }
+    };
+
+    const isWithinChoco = (lat, lng) => {
+      if (!lat || !lng) return false;
+      try {
+        if (window.turf && typeof window.turf.booleanPointInPolygon === 'function') {
+          const pt = window.turf.point([Number(lng), Number(lat)]);
+          return window.turf.booleanPointInPolygon(pt, chocoPolygon);
+        }
+      } catch (e) {
+        console.warn('turf error, falling back to bbox', e);
+      }
+      // Fallback bbox
+      const minLat = 4.0;
+      const maxLat = 8.0;
+      const minLng = -78.5;
+      const maxLng = -75.0;
+      return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+    };
     // Crear nuevo reporte con id
     const newId = Math.max(...reports.map(r => r.id), 0) + 1;
 
@@ -1024,6 +1119,26 @@ function App() {
       lng = roadCoords[roadId].lng + jitter();
     }
 
+    // Evitar que un nuevo reporte caiga exactamente en la misma ubicación
+    // que reportes existentes (o los recientes de la sesión). Aplicamos
+    // re-jitter hasta obtener coordenadas suficientemente distintas.
+    const isTooClose = (aLat, aLng, bLat, bLng, threshold = 0.0015) => {
+      if (!aLat || !aLng || !bLat || !bLng) return false;
+      return Math.abs(aLat - bLat) < threshold && Math.abs(aLng - bLng) < threshold;
+    };
+
+    const allReports = [...reports, ...recentReports];
+    if (lat && lng) {
+      let attempts = 0;
+      const maxAttempts = 12;
+      const jitter = () => (Math.random() - 0.5) * 0.02;
+      while (attempts < maxAttempts && allReports.some(r => isTooClose(lat, lng, r.lat, r.lng))) {
+        lat = Number(lat) + jitter();
+        lng = Number(lng) + jitter();
+        attempts++;
+      }
+    }
+
     const newReport = {
       id: newId,
       ...reportData,
@@ -1033,6 +1148,29 @@ function App() {
       lng,
       approved: false
     };
+
+    // Marcar si el punto está fuera del Chocó (para poder mostrar badge/color)
+    const latNumAfter = lat ? Number(lat) : null;
+    const lngNumAfter = lng ? Number(lng) : null;
+    const outsideChocoFlag = latNumAfter && lngNumAfter ? !isWithinChoco(latNumAfter, lngNumAfter) : false;
+    newReport.outsideChoco = outsideChocoFlag;
+
+    // Validación geográfica: para todas las vías excepto las permitidas (Pereira y Medellín)
+    const allowedOutsideRoads = [1, 2]; // ids de vías que pueden estar fuera del Chocó
+    const latNum = lat ? Number(lat) : null;
+    const lngNum = lng ? Number(lng) : null;
+    if (!allowedOutsideRoads.includes(roadId)) {
+      // Si hay coordenadas y están fuera del Chocó, rechazar
+      if (latNum && lngNum && !isWithinChoco(latNum, lngNum)) {
+        alert('Las coordenadas del reporte deben ubicarse dentro del departamento del Chocó para esta vía. Por favor selecciona un punto válido en el mapa.');
+        return;
+      }
+      // Si no hay coordenadas (ni por mapa ni por defecto), impedir la creación
+      if (!latNum || !lngNum) {
+        alert('Necesitas seleccionar la ubicación del reporte dentro del Chocó (usa el mapa para marcar el punto).');
+        return;
+      }
+    }
 
     // Eliminar reportes antiguos de la MISMA vía Y MISMA ubicación (km)
     const filteredReports = reports.filter(r => 
@@ -1126,41 +1264,41 @@ function App() {
           <LoginModal 
             onClose={() => setShowLogin(false)} 
             onShowRegister={() => { setShowLogin(false); setShowRegister(true); }}
-            onLogin={(email) => { 
-              const localPart = String(email).toLowerCase().split('@')[0] || '';
-              // Admin if local-part equals 'admin' or ends with '.admin' (e.g. nombre.admin@...)
-              const isAdminUser = localPart === 'admin' || localPart.endsWith('.admin');
-              setIsAuthenticated(true); 
-              setUserName(email); 
-              setIsAdmin(isAdminUser);
-              localStorage.setItem('currentUser', email);
-              setShowLogin(false); 
-            }}
+            onLogin={(email, role) => { 
+                const localPart = String(email).toLowerCase().split('@')[0] || '';
+                // Admin if role provided as 'admin' OR local-part equals 'admin' or ends with '.admin'
+                const isAdminUser = (role === 'admin') || localPart === 'admin' || localPart.endsWith('.admin');
+                setIsAuthenticated(true); 
+                setUserName(email); 
+                setIsAdmin(isAdminUser);
+                localStorage.setItem('currentUser', email);
+                setShowLogin(false); 
+              }}
           />
         )}
         {showRegister && (
           <RegisterModal 
             onClose={() => setShowRegister(false)}
-            onRegister={(name, email) => { 
-              const localPart = String(email).toLowerCase().split('@')[0] || '';
-              const isAdminUser = localPart === 'admin' || localPart.endsWith('.admin');
-              setIsAuthenticated(true); 
-              setUserName(name); 
-              setIsAdmin(isAdminUser);
-              // Guardar el email como usuario actual (consistente para admin check)
-              localStorage.setItem('currentUser', email);
-              const newUser = { name, email, blocked: false, role: isAdminUser ? 'admin' : 'user' };
-              setUsers(prev => [...prev, newUser]);
-              // Enviar usuario al servidor si está disponible
-              if (apiAvailable) {
-                fetch('/.netlify/functions/users', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(newUser)
-                }).catch(err => console.warn('Error al guardar usuario en servidor:', err.message));
-              }
-              setShowRegister(false); 
-            }}
+            onRegister={(name, email, password) => { 
+                const localPart = String(email).toLowerCase().split('@')[0] || '';
+                const isAdminUser = localPart === 'admin' || localPart.endsWith('.admin');
+                setIsAuthenticated(true); 
+                setUserName(email); 
+                setIsAdmin(isAdminUser);
+                // Guardar el email como usuario actual (consistente para admin check)
+                localStorage.setItem('currentUser', email);
+                const newUser = { name, email, password, blocked: false, role: isAdminUser ? 'admin' : 'user' };
+                setUsers(prev => [...prev, newUser]);
+                // Enviar usuario al servidor si está disponible
+                if (apiAvailable) {
+                  fetch('/.netlify/functions/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newUser)
+                  }).catch(err => console.warn('Error al guardar usuario en servidor:', err.message));
+                }
+                setShowRegister(false); 
+              }}
           />
         )}
       </div>
@@ -1195,7 +1333,7 @@ function App() {
           <div className="hidden md:flex gap-8 items-center">
             <button className={`font-bold px-4 py-2 rounded-lg transition ${activeTab==='all' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>setActiveTab('all')}>Todos los Reportes</button>
             <button className={`font-bold px-4 py-2 rounded-lg transition ${activeTab==='recent' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>setActiveTab('recent')}>Reportes Recientes</button>
-            <button className="font-bold px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100" onClick={()=>setShowAbout(true)}>Sobre nosotros</button>
+            <button className="font-bold px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100" onClick={() => { const el = document.getElementById('about-section'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }}>Sobre nosotros</button>
             <div className="w-px h-6 bg-gray-300"></div>
             <div className="flex items-center gap-3">
               <span className="text-sm font-semibold text-gray-700">{userName}</span>
@@ -1214,7 +1352,7 @@ function App() {
               <div className="absolute top-16 left-0 w-full bg-white shadow-lg flex flex-col gap-2 p-4" style={{zIndex: 10000}}>
                 <button className={`font-bold px-4 py-2 rounded-lg transition ${activeTab==='all' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>{setActiveTab('all');setShowMenu(false);}}>Todos los Reportes</button>
                 <button className={`font-bold px-4 py-2 rounded-lg transition ${activeTab==='recent' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>{setActiveTab('recent');setShowMenu(false);}}>Reportes Recientes</button>
-                <button className="font-bold px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100" onClick={()=>{setShowAbout(true);setShowMenu(false);}}>Sobre nosotros</button>
+                <button className="font-bold px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100" onClick={()=>{ const el = document.getElementById('about-section'); if (el) el.scrollIntoView({ behavior: 'smooth' }); setShowMenu(false); }}>Sobre nosotros</button>
                 <div className="border-t border-gray-200 my-2"></div>
                 <div className="px-4 py-2">
                   <p className="text-xs text-gray-500 mb-2">Sesión: <span className="font-semibold text-gray-700">{userName}</span></p>
@@ -1228,30 +1366,6 @@ function App() {
           </div>
         </nav>
       </div>
-
-      {/* Modal Sobre Nosotros */}
-      {showAbout && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative">
-            <button onClick={() => setShowAbout(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition">✕</button>
-            <h2 className="text-3xl font-bold mb-4 text-blue-700">Sobre nosotros</h2>
-            <p className="mb-4 text-gray-700">Esta página fue creada para informar a la comunidad sobre el estado de las carreteras del Chocó en tiempo real. Surgió como iniciativa de apoyo a los viajeros y habitantes de la región, permitiendo reportar y consultar el estado de las vías de manera colaborativa.</p>
-            <div className="mb-2">
-              <span className="font-bold text-blue-700">Dueño:</span> Luis Alexander
-            </div>
-            <div className="mb-2">
-              <span className="font-bold text-blue-700">Estudiante:</span> Universidad Uniclaretiana
-            </div>
-            <div className="mb-2">
-              <span className="font-bold text-blue-700">Facultad:</span> Ingeniería en Sistemas
-            </div>
-            <div className="mb-2">
-              <span className="font-bold text-blue-700">Semestre:</span> Segundo semestre
-            </div>
-            <p className="mt-4 text-gray-600 text-sm">¡Gracias por usar la plataforma y contribuir con tus reportes!</p>
-          </div>
-        </div>
-      )}
 
       <main className="flex-1 container mx-auto px-2 md:px-8 py-8">
         <Stats />
@@ -1349,6 +1463,9 @@ function App() {
         )}
         {/* Modal de detalles de reporte */}
         <ReportDetailsModal report={showDetails} onClose={()=>setShowDetails(null)} />
+        
+        {/* Sección Sobre Nosotros debajo de reportes */}
+        <AboutSection />
       </main>
 
       {/* Modal de Reporte */}
@@ -1508,7 +1625,7 @@ function App() {
             <div>
               <h4 className="text-lg font-bold mb-4">Enlaces</h4>
               <ul className="space-y-2 text-gray-400 text-sm">
-                <li><button onClick={() => setShowAbout(true)} className="hover:text-white">Sobre Nosotros</button></li>
+                <li><button onClick={() => { const el = document.getElementById('about-section'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-white">Sobre Nosotros</button></li>
                 <li><a href="#" className="hover:text-white">Términos de Uso</a></li>
                 <li><a href="#" className="hover:text-white">Privacidad</a></li>
               </ul>
