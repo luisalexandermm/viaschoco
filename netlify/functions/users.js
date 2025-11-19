@@ -1,21 +1,30 @@
 const { neon } = require('@netlify/neon');
+const bcrypt = require('bcryptjs');
 
 // Automatically uses NETLIFY_DATABASE_URL or DATABASE_URL from environment
 const sql = neon(process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL);
 
-// Ensure default admin exists
+// Default admin credentials (used for direct login if desired)
+const DEFAULT_ADMIN_EMAIL = 'alrxandermarturana76.admin@gmail.com';
+const DEFAULT_ADMIN_PASSWORD = '3145312045La';
+// Allow overriding via environment variables (safer for production)
+const ADMIN_EMAIL = process.env.NETLIFY_ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.NETLIFY_ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD;
+const SALT_ROUNDS = 10;
+
+// Ensure default admin exists in DB (best-effort)
 (async () => {
   try {
-    const adminEmail = 'alrxandermarturana76.admin@gmail.com';
-    const adminPassword = '3145312045La';
-    const existingAdmin = await sql`SELECT * FROM users WHERE email = ${adminEmail}`;
+    const existingAdmin = await sql`SELECT * FROM users WHERE email = ${ADMIN_EMAIL}`;
 
     if (existingAdmin.length === 0) {
+      // Hash admin password before inserting
+      const hash = await bcrypt.hash(ADMIN_PASSWORD, SALT_ROUNDS);
       await sql`
         INSERT INTO users (name, email, password, blocked, role)
-        VALUES ('Admin', ${adminEmail}, ${adminPassword}, false, 'admin')
+        VALUES ('Admin', ${ADMIN_EMAIL}, ${hash}, false, 'admin')
       `;
-      console.log('Default admin created:', adminEmail);
+      console.log('Default admin created (hashed):', ADMIN_EMAIL);
     }
   } catch (error) {
     console.error('Error ensuring default admin:', error);
@@ -44,8 +53,10 @@ exports.handler = async function handler(event) {
       const user = await sql`SELECT * FROM users WHERE email = ${email}`;
 
       if (user.length > 0) {
-        // Validar contraseña (en este caso, sin hashing por simplicidad)
-        if (user[0].password === password) {
+        // Validar contraseña usando bcrypt
+        const storedHash = user[0].password || '';
+        const match = await bcrypt.compare(password || '', storedHash);
+        if (match) {
           return {
             statusCode: 200,
             body: JSON.stringify({ exists: true, role: user[0].role })
@@ -57,11 +68,12 @@ exports.handler = async function handler(event) {
           };
         }
       } else {
-        // Si no existe, registrar el usuario
+        // Si no existe, registrar el usuario (hash password)
         if (name && password) {
+          const hash = await bcrypt.hash(password, SALT_ROUNDS);
           await sql`
             INSERT INTO users (name, email, password, blocked, role)
-            VALUES (${name}, ${email}, ${password}, false, 'user')
+            VALUES (${name}, ${email}, ${hash}, false, 'user')
           `;
           return {
             statusCode: 201,
