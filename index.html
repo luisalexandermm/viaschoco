@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/png" href="img/LOGOCHCOCVIA-removebg-preview.png" />
+  <link rel="icon" type="image/png" href="img/logovia.png" />
   <title>Vías del Chocó - Información en Tiempo Real</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -19,7 +19,6 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- App en JSX (transpilado por Babel en el cliente). Ideal para prototipos. -->
   <script type="text/babel">
 // --- inicio App.jsx inline ---
 const roadsData = [
@@ -41,8 +40,7 @@ const reportsData = [
   { id: 5, title: "Vía Quibdó - Lloró", status: "Regular", location: "Km 35 - 40", message: "Hundimiento del pavimento en varios puntos. Señalización deficiente.", rec: "Conducir con precaución especialmente de noche. Velocidad máxima 40 km/h en este sector.", user: "Pedro R.", time: "Hace 14 h", lat: 5.7234, lng: -75.9876 }
 ];
 
-// Coordenadas representativas por id de vía (sirven para asignar un punto por defecto
-// cuando un usuario crea un reporte desde el formulario y no proporciona lat/lng).
+
 const roadCoords = {
   1: { lat: 5.8521, lng: -75.6521 }, // Vía Quibdó - Medellín
   2: { lat: 5.6321, lng: -76.0521 }, // Quibdó - Pereira
@@ -282,7 +280,7 @@ function Report({ r, onViewDetails }) {
     switch(status) {
       case 'Buena': return '#22c55e';
       case 'Regular': return '#eab308';
-      case 'Mala': return '#f97316';
+      case 'Mala': return '#f97316'; 
       case 'Cerrada': return '#ef4444';
       default: return '#6b7280';
     }
