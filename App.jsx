@@ -59,7 +59,9 @@ function LoginModal({ onClose, onShowRegister, onLogin }) {
       if (user.exists) {
         onLogin(email, user.role);
       } else {
-        alert('El usuario no está registrado. Por favor, regístrate primero.');
+        // Permitir iniciar sesión aunque el usuario no exista en el registro
+        alert('Usuario no registrado encontrado; se iniciará sesión como usuario estándar.');
+        onLogin(email, 'user');
       }
     } else {
       alert('Error al verificar el usuario. Intenta nuevamente.');
@@ -1214,4 +1216,97 @@ if (appContainer) {
   ReactDOM.createRoot(appContainer).render(<App />);
 } else {
   console.error('No se encontró #app');
+}
+  
+
+  return (
+    <dialog>
+      <div className="dialog-header">
+        <h2>Reportar Estado de Vía</h2>
+        <p>Ayuda a la comunidad compartiendo información sobre el estado actual de las vías.</p>
+      </div>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="user">Tu Nombre</label>
+          <input type="text" id="user" name="user" placeholder="Ej: Juan Pérez" />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="road">Selecciona la Vía</label>
+          <select id="road" name="road">
+            <option value="">Selecciona una vía</option>
+            {roadsData.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="status">Estado Actual</label>
+          <select id="status" name="status">
+            <option value="">Selecciona el estado</option>
+            <option value="good">Buena - Transitable sin problemas</option>
+            <option value="regular">Regular - Algunos baches o demoras</option>
+            <option value="bad">Mala - Muy deteriorada</option>
+            <option value="closed">Cerrada - Intransitable</option>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="location">Ubicación Específica (Kilómetro)</label>
+          <input type="text" id="location" name="location" placeholder="Ej: Km 45 - 48 o Sector La Lorena" />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="comment">Descripción del Estado</label>
+          <textarea id="comment" name="comment" rows="3" placeholder="Describe detalladamente el problema: baches, deslizamientos, hundimientos, etc."></textarea>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="recommendations">Recomendaciones</label>
+          <textarea id="recommendations" name="recommendations" rows={3} placeholder="Ej: Reducir velocidad, usar vehículo 4x4, evitar en época de lluvia, etc."></textarea>
+        </div>
+
+        <button type="submit">Enviar Reporte</button>
+      </form>
+    </dialog>
+  );
+
+
+function App() {
+  return (
+    <div className="app">
+      <Header />
+      <main>
+        <div>
+          <div className="container">
+            <div className="alert"><p>Esta plataforma permite a la comunidad reportar el estado de las vías en tiempo real. Tu colaboración ayuda a otros viajeros.</p></div>
+            <Stats />
+            <div className="button-center"><button onClick={() => { const d = document.querySelector('dialog'); if (d) d.showModal(); }}>Reportar Estado de Vía</button></div>
+
+            <section className="tabs">
+              <div className="tabs-list">
+                <button className="tab-trigger active">Todas las Vías</button>
+                <button className="tab-trigger">Reportes Recientes</button>
+              </div>
+
+              <div className="tab-content active">
+                <h2>Vías del Departamento</h2>
+                <div className="roads-grid">
+                  {roadsData.map(r => <RoadCard key={r.id} road={r} />)}
+                </div>
+              </div>
+
+              <div className="tab-content">
+                <h2>Reportes Recientes</h2>
+                <div className="reports-container">
+                  {reportsData.map(r => <Report key={r.id} r={r} />)}
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+      <ReportForm />
+      <footer><p>© 2025 Vías del Chocó. Plataforma comunitaria de información vial.</p></footer>
+    </div>
+  );
 }
