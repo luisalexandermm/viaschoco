@@ -77,8 +77,8 @@
                 setLoading(true);
                 try {
                     const [reportsRes, usersRes] = await Promise.all([
-                        fetch('http://localhost:3000/api/reports'),
-                        fetch('http://localhost:3000/api/users')
+                        fetch('https://tu-backend.onrender.com/api/reports'),
+                        fetch('https://tu-backend.onrender.com/api/users')
                     ]);
                     if (reportsRes.ok) setReports(await reportsRes.json());
                     if (usersRes.ok) setUsers(await usersRes.json());
@@ -95,7 +95,7 @@
                 const report = reports.find(r => r.id === id);
                 const updated = { ...report, approved: !report.approved };
                 try {
-                    const res = await fetch(`http://localhost:3000/api/reports/${id}`, {
+                    const res = await fetch(`https://tu-backend.onrender.com/api/reports/${id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(updated)
@@ -111,7 +111,7 @@
             const deleteReport = async (id) => {
                 if (!confirm('¿Eliminar este reporte?')) return;
                 try {
-                    const res = await fetch(`http://localhost:3000/api/reports/${id}`, {
+                    const res = await fetch(`https://tu-backend.onrender.com/api/reports/${id}`, {
                         method: 'DELETE'
                     });
                     if (res.ok) {
@@ -393,6 +393,57 @@
                             </div>
                         )}
                     </div>
+
+                    {/* Footer */}
+                    <footer className="bg-gray-900 text-white py-8 md:py-10 mt-auto border-t border-gray-700">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mb-6 md:mb-8">
+                                {/* Sobre */}
+                                <div>
+                                    <h4 className="text-base md:text-lg font-bold mb-3">Panel Admin</h4>
+                                    <p className="text-gray-400 text-xs md:text-sm">Gestión de reportes y usuarios de Vías del Chocó.</p>
+                                </div>
+
+                                {/* Enlaces */}
+                                <div>
+                                    <h4 className="text-base md:text-lg font-bold mb-3">Enlaces</h4>
+                                    <ul className="space-y-1 md:space-y-2 text-gray-400 text-xs md:text-sm">
+                                        <li><a href="/" className="hover:text-white transition">Volver a Inicio</a></li>
+                                        <li><a href="#" className="hover:text-white transition">Ayuda</a></li>
+                                        <li><a href="#" className="hover:text-white transition">Soporte</a></li>
+                                    </ul>
+                                </div>
+
+                                {/* Contacto */}
+                                <div>
+                                    <h4 className="text-base md:text-lg font-bold mb-3">Contacto</h4>
+                                    <p className="text-gray-400 text-xs md:text-sm mb-2">
+                                        📧 <a href="mailto:Alrxandermaturana76@gmail.com" className="text-gray-400 hover:text-blue-400 transition">
+                                            Alrxandermaturana76@gmail.com
+                                        </a>
+                                    </p>
+                                    <p className="text-gray-400 text-xs md:text-sm mb-2">
+                                        📞 <a href="https://wa.me/573145312045" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-green-500 transition">
+                                            +57 314 531 2045
+                                        </a>
+                                    </p>
+                                    <p className="text-gray-400 text-xs md:text-sm">📍 Quibdó, Chocó</p>
+                                </div>
+
+                                {/* Estadísticas */}
+                                <div>
+                                    <h4 className="text-base md:text-lg font-bold mb-3">Estadísticas</h4>
+                                    <p className="text-gray-400 text-xs md:text-sm">Reportes activos: {reports.length}</p>
+                                    <p className="text-gray-400 text-xs md:text-sm">Usuarios registrados: {users.length}</p>
+                                </div>
+                            </div>
+
+                            <hr className="border-gray-700 mb-4 md:mb-6" />
+                            <div className="text-center text-gray-400 text-xs md:text-sm">
+                                <p>&copy; 2025 Vías del Chocó - Panel de Administración. Realizado por <span className="text-blue-400 font-bold">luisito</span> | Todos los derechos reservados.</p>
+                            </div>
+                        </div>
+                    </footer>
                 </div>
             );
         }
