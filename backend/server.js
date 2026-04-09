@@ -1,14 +1,30 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const http = require('http');
+const socketIO = require('socket.io');
+const path = require('path');
+
+// Importar módulo geosentinel
+const geosentinel = require('../geosentinel');
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIO(server, { cors: { origin: "*" } });
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(helmet());
 app.use(express.json());
+
+// Servir archivos estáticos (frontend)
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+// Ruta raíz para servir index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
 
 // Datos simulados
 let reports = [
@@ -32,6 +48,9 @@ let users = [
 
 // ID incremental seguro
 let nextReportId = 2;
+
+// ==================== REGISTRAR RUTAS GEOSENTINEL ====================
+geosentinel.routes(app, io);
 
 // 🔎 Middleware de validación
 function validateReport(req, res, next) {
@@ -123,15 +142,31 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-//  Middleware global de errores
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Error interno del servidor'
+// ==================== SOCKET.IO - CONEXIONES EN TIEMPO REAL ====================
+
+io.on('connection', (socket) => {
+  console.log(`✅ Cliente conectado: ${socket.id}`);
+  
+  // Enviar estado actual de geosentinels
+  socket.emit('geosentinels:all', geosentinel.sensors.getAllSensors());
+  socket.emit('alerts:all', geosentinel.alerts.getAllAlerts());
+  socket.emit('weather:current', geosentinel.weather.getWeather());
+  
+  socket.on('disconnect', () => {
+    console.log(`❌ Cliente desconectado: ${socket.id}`);
   });
 });
 
-//  Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
+// ==================== SIMULACIÓN DE SENSORES ====================
+
+// Iniciar simulación de sensores geosentinel
+const sensorInterval = geosentinel.simulator.startSensorSimulation(io, 5000);
+const weatherInterval = geosentinel.simulator.startWeatherSimulation(io, 10000);
+const alertInterval = geosentinel.simulator.startAlertCleanup(3600000); // 1 hora
+
+// Iniciar servidor
+server.listen(PORT, () => {
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+  console.log(`📡 WebSocket (Socket.io) activo`);
+  console.log(`📍 Geosentinels inicializados: ${geosentinel.sensors.getAllSensors().length}`);
 });

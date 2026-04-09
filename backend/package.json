@@ -8,14 +8,20 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
     "cors": "^2.8.5",
-    "body-parser": "^1.20.2"
+    "express": "^4.18.2",
+    "helmet": "^8.1.0",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
-  "keywords": ["api", "vias", "choco"],
+  "keywords": [
+    "api",
+    "vias",
+    "choco"
+  ],
   "author": "luisito",
   "license": "MIT"
 }
