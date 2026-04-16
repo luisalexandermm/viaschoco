@@ -1343,7 +1343,7 @@ function App() {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name, email, googleAuth: true })
-            });
+            }); 
             if (regRes.ok) {
               setIsAuthenticated(true);
               setUserName(name);
