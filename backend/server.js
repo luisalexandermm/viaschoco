@@ -42,8 +42,8 @@ let reports = [
 ];
 
 let users = [
-  { name: "usuario1", role: "user", blocked: false },
-  { name: "admin", role: "admin", blocked: false }
+  { name: "usuario1", email: "usuario1@example.com", password: "pass", role: "user", blocked: false },
+  { name: "admin", email: "alrxandermarturana76.admin@gmail.com", password: "3145312045La", role: "admin", blocked: false }
 ];
 
 // ID incremental seguro
@@ -132,6 +132,38 @@ app.put('/api/users/:name', (req, res) => {
 
   Object.assign(user, req.body);
   res.json(user);
+});
+
+// Login
+app.post('/api/users', (req, res) => {
+  const { email, password, googleAuth } = req.body;
+  if (googleAuth) {
+    const user = users.find(u => u.email === email);
+    if (user) {
+      res.json({ exists: true, role: user.role, name: user.name });
+    } else {
+      res.json({ exists: false });
+    }
+  } else {
+    const user = users.find(u => u.email === email && u.password === password);
+    if (user) {
+      res.json({ exists: true, role: user.role, name: user.name });
+    } else {
+      res.json({ exists: false });
+    }
+  }
+});
+
+// Registro
+app.put('/api/users', (req, res) => {
+  const { name, email, password, googleAuth } = req.body;
+  const existing = users.find(u => u.email === email);
+  if (existing) {
+    res.status(400).json({ error: 'Usuario ya existe' });
+  } else {
+    users.push({ name, email, password: googleAuth ? null : password, role: 'user', blocked: false });
+    res.json({ success: true });
+  }
 });
 
 // Health check

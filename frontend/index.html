@@ -15,6 +15,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Reemplaza YOUR_GOOGLE_CLIENT_ID con tu Client ID de Google Console -->
 </head>
 <body>
   <div id="app"></div>
@@ -73,7 +75,7 @@ function LoginModal({ onClose, onShowRegister, onLogin }) {
       return;
     }
 
-    const response = await fetch('/.netlify/functions/users', {
+    const response = await fetch('/api/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password: pass })
@@ -135,6 +137,17 @@ function LoginModal({ onClose, onShowRegister, onLogin }) {
             </button>
           </div>
         </form>
+        
+        {/* Separador */}
+        <div className="flex items-center my-4">
+          <div className="flex-1 border-t border-gray-300"></div>
+          <span className="px-3 text-sm text-gray-500">o</span>
+          <div className="flex-1 border-t border-gray-300"></div>
+        </div>
+        
+        {/* Botón de Google */}
+        <div id="google-signin-button" className="flex justify-center"></div>
+        
         <p className="text-center text-sm mt-4" style={{color:'#717182'}}>
           ¿No tienes cuenta? 
           <button 
@@ -217,6 +230,17 @@ function RegisterModal({ onClose, onRegister }){
             </button>
           </div>
         </form>
+        
+        {/* Separador */}
+        <div className="flex items-center my-4">
+          <div className="flex-1 border-t border-gray-300"></div>
+          <span className="px-3 text-sm text-gray-500">o</span>
+          <div className="flex-1 border-t border-gray-300"></div>
+        </div>
+        
+        {/* Botón de Google */}
+        <div id="google-signup-button" className="flex justify-center"></div>
+        
       </div>
     </div>
   );
@@ -524,7 +548,8 @@ function MapComponent({ reports, highlightReportId, enableClickToSet, onMapClick
         borderRadius: '12px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
         border: '1px solid #e5e7eb',
-        marginBottom: '2rem'
+        marginBottom: '2rem',
+        zIndex: 0
       }}
     ></div>
   );
@@ -894,10 +919,10 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
               <div className="mb-6 flex flex-wrap gap-3">
                 <select value={roadStatusFilter} onChange={(e)=>setRoadStatusFilter(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg bg-white">
                   <option value="all">Todas las vías</option>
-                  <option value="buena">Estado: Buena</option>
-                  <option value="regular">Estado: Regular</option>
-                  <option value="mala">Estado: Mala</option>
-                  <option value="cerrada">Estado: Cerrada</option>
+                  <option value="Buena">Estado: Buena</option>
+                  <option value="Regular">Estado: Regular</option>
+                  <option value="Mala">Estado: Mala</option>
+                  <option value="Cerrada">Estado: Cerrada</option>
                 </select>
                 <select value={weatherFilter} onChange={(e)=>setWeatherFilter(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg bg-white">
                   <option value="all">Todos los datos</option>
@@ -917,7 +942,7 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
                   <div key={index} className="p-4 md:p-6 bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="flex-1">
-                        <h4 className="font-bold text-lg text-gray-800 mb-2">{road.name}</h4>
+                        <h4 className="font-bold text-lg text-gray-800 mb-2">{road.title}</h4>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                           <div>
                             <span className="text-gray-600">Estado:</span>
@@ -1009,7 +1034,7 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
                     <tbody>
                       {roads.map((road, index) => (
                         <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-800">{road.name}</td>
+                          <td className="px-4 py-3 font-medium text-gray-800">{road.title}</td>
                           <td className="px-4 py-3">
                             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                               road.status === 'buena' ? 'bg-green-100 text-green-800' :
@@ -1269,6 +1294,90 @@ function App() {
   const [pendingCoords, setPendingCoords] = React.useState(null); // {lat,lng} seleccionadas desde el mapa
   const [apiAvailable, setApiAvailable] = React.useState(false); // true si el servidor está disponible
   const [selectedCoords, setSelectedCoords] = React.useState(null); // {lat,lng} para llenar el formulario
+
+  // Calcular estado actualizado de las vías basado en reportes aprobados
+  const updatedRoads = React.useMemo(() => {
+    return roadsData.map(road => {
+      const relevantReports = reports.filter(r => r.title === road.title && r.approved);
+      if (relevantReports.length === 0) return road;
+      
+      // Prioridad: Cerrada > Mala > Regular > Buena
+      if (relevantReports.some(r => r.status === 'Cerrada')) {
+        return { ...road, status: 'Cerrada' };
+      } else if (relevantReports.some(r => r.status === 'Mala')) {
+        return { ...road, status: 'Mala' };
+      } else if (relevantReports.some(r => r.status === 'Regular')) {
+        return { ...road, status: 'Regular' };
+      } else {
+        return { ...road, status: 'Buena' };
+      }
+    });
+  }, [reports]);
+
+  // Inicializar Google Sign-In
+  React.useEffect(() => {
+    const handleGoogleSignIn = async (response) => {
+      const payload = JSON.parse(atob(response.credential.split('.')[1]));
+      const email = payload.email;
+      const name = payload.name;
+      
+      // Intentar login
+      try {
+        const res = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, googleAuth: true })
+        });
+        if (res.ok) {
+          const user = await res.json();
+          if (user.exists) {
+            setIsAuthenticated(true);
+            setUserName(user.name || name);
+            setIsAdmin(user.role === 'admin');
+            localStorage.setItem('currentUser', email);
+            setShowLogin(false);
+            setShowRegister(false);
+          } else {
+            // Si no existe, registrarlo
+            const regRes = await fetch('/api/users', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, email, googleAuth: true })
+            });
+            if (regRes.ok) {
+              setIsAuthenticated(true);
+              setUserName(name);
+              setIsAdmin(false);
+              localStorage.setItem('currentUser', email);
+              setShowLogin(false);
+              setShowRegister(false);
+            } else {
+              alert('Error al registrar con Google');
+            }
+          }
+        } else {
+          alert('Error al iniciar sesión con Google');
+        }
+      } catch (err) {
+        alert('Error de conexión');
+      }
+    };
+
+    if (window.google) {
+      window.google.accounts.id.initialize({
+        client_id: '867688556744-0mo9k5fj1bkh4jidlk4dpog2qq74kg82.apps.googleusercontent.com', // Obtén esto de Google Console
+        callback: handleGoogleSignIn
+      });
+      window.google.accounts.id.renderButton(
+        document.getElementById('google-signin-button'),
+        { theme: 'outline', size: 'large' }
+      );
+      window.google.accounts.id.renderButton(
+        document.getElementById('google-signup-button'),
+        { theme: 'outline', size: 'large' }
+      );
+    }
+  }, []);
 
   // Cargar datos del servidor al inicializar
   React.useEffect(() => {
@@ -1671,7 +1780,7 @@ function App() {
                 setUsers(prev => [...prev, newUser]);
                 // Enviar usuario al servidor si está disponible
                 if (apiAvailable) {
-                  fetch('/.netlify/functions/users', {
+                  fetch('/api/users', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newUser)
@@ -1690,7 +1799,7 @@ function App() {
   if (view === 'admin') {
     return (
       <div className="app min-h-screen bg-white">
-        <AdminPanel reports={reports} setReports={setReports} users={users} setUsers={setUsers} roads={roads} onClose={()=>setView('main')} apiAvailable={apiAvailable} />
+        <AdminPanel reports={reports} setReports={setReports} users={users} setUsers={setUsers} roads={updatedRoads} onClose={()=>setView('main')} apiAvailable={apiAvailable} />
       </div>
     );
   }
@@ -1712,7 +1821,6 @@ function App() {
           </div>
           <div className="hidden md:flex gap-8 items-center">
             <button className={`font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 ${activeTab==='all' ? 'bg-blue-100 text-blue-700 shadow-md' : 'text-gray-700 hover:bg-gray-100 hover:shadow-sm'}`} onClick={()=>setActiveTab('all')}>Todos los Reportes</button>
-            <button className={`font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 ${activeTab==='recent' ? 'bg-blue-100 text-blue-700 shadow-md' : 'text-gray-700 hover:bg-gray-100 hover:shadow-sm'}`} onClick={()=>setActiveTab('recent')}>Reportes Recientes</button>
             <button className="font-semibold px-5 py-2.5 rounded-xl text-gray-700 hover:bg-gray-100 hover:shadow-sm transition-all duration-200" onClick={() => { const el = document.getElementById('about-section'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }}>Sobre nosotros</button>
             <div className="w-px h-6 bg-gray-300"></div>
             <div className="flex items-center gap-3">
@@ -1731,7 +1839,6 @@ function App() {
             {showMenu && (
               <div className="absolute top-20 left-0 w-full bg-white/95 backdrop-blur-lg shadow-2xl rounded-b-2xl border-t border-gray-200 flex flex-col gap-3 p-6 z-50">
                 <button className={`font-semibold px-5 py-3 rounded-xl transition-all duration-200 ${activeTab==='all' ? 'bg-blue-100 text-blue-700 shadow-md' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>{setActiveTab('all');setShowMenu(false);}}>Todos los Reportes</button>
-                <button className={`font-semibold px-5 py-3 rounded-xl transition-all duration-200 ${activeTab==='recent' ? 'bg-blue-100 text-blue-700 shadow-md' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>{setActiveTab('recent');setShowMenu(false);}}>Reportes Recientes</button>
                 <button className="font-semibold px-5 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition-all duration-200" onClick={()=>{ const el = document.getElementById('about-section'); if (el) el.scrollIntoView({ behavior: 'smooth' }); setShowMenu(false); }}>Sobre nosotros</button>
                 <div className="border-t border-gray-200 my-2"></div>
                 <div className="px-4 py-2">
@@ -1747,9 +1854,9 @@ function App() {
         </nav>
       </div>
 
-      <main className="flex-1 container mx-auto px-2 md:px-8 py-8">
+      <main className="flex-1 container mx-auto px-2 md:px-8 pt-24 pb-8">
         <Stats />
-        <LiveRoadStatus roads={roads} />
+        <LiveRoadStatus roads={updatedRoads} />
         
         {/* Mapa en tiempo real */}
         <section className="mb-12">
