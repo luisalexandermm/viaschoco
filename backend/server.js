@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(helmet());
-app.use(express.json());
+app.use(express.json());  
 
 // Servir archivos estáticos (frontend)
 app.use(express.static(path.join(__dirname, '../frontend')));
