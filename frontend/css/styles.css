@@ -53,7 +53,7 @@ body {
   font-size: 16px;
   line-height: 1.5;
   color: var(--color-foreground);
-  background: linear-gradient(to bottom, var(--bg-slate-50), var(--bg-slate-100));
+  background: #fff;
   min-height: 100vh;
 }
 
@@ -86,31 +86,6 @@ label {
   font-size: 1rem;
   font-weight: 500;
   line-height: 1.5;
-}
-
-/* Hero Section */
-header {
-  position: relative;
-  height: 300px;
-  background-color: var(--bg-slate-900);
-  overflow: hidden;
-}
-
-header img {
-  width: 120%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.4;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-header::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, var(--bg-slate-900), rgba(15, 23, 42, 0.5), transparent);
 }
 
 .hero-content {
@@ -696,82 +671,7 @@ footer p:last-child {
    HEADER Y NAVEGACIÓN
    ============================================ */
 
-header {
-    position: relative;
-    background-size: cover;
-    background-position: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
 
-/* Móvil */
-@media (max-width: 639px) {
-    header {
-        height: 10rem; /* 40px * 4 = 160px */
-        min-height: 160px;
-    }
-    
-    header h1 {
-        font-size: 1.875rem; /* 30px */
-        font-weight: bold;
-        color: white;
-        text-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
-    }
-    
-    header p {
-        font-size: 0.875rem; /* 14px */
-        color: #f3f4f6;
-    }
-}
-
-/* Tablet pequeña */
-@media (min-width: 640px) and (max-width: 767px) {
-    header {
-        height: 14rem; /* 224px */
-    }
-    
-    header h1 {
-        font-size: 2.25rem; /* 36px */
-    }
-    
-    header p {
-        font-size: 1rem;
-    }
-}
-
-/* Tablet y superior */
-@media (min-width: 768px) {
-    header {
-        height: 16rem; /* 256px */
-    }
-    
-    header h1 {
-        font-size: 3rem; /* 48px */
-    }
-    
-    header p {
-        font-size: 1.125rem; /* 18px */
-    }
-}
-
-/* Overlay del header */
-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 1;
-}
-
-header h1, header p {
-    position: relative;
-    z-index: 2;
-}
 
 /* Navegación Sticky */
 nav {

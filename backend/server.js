@@ -4,6 +4,9 @@ const helmet = require('helmet');
 const http = require('http');
 const socketIO = require('socket.io');
 const path = require('path');
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 // Importar módulo geosentinel
 const geosentinel = require('../geosentinel');
@@ -63,6 +66,22 @@ function validateReport(req, res, next) {
   }
 
   next();
+}
+
+// Middleware de autenticación
+function authenticateToken(req, res, next) {
+  const token = req.headers['authorization'];
+  if (!token) {
+    return res.status(401).json({ error: 'Acceso denegado, token requerido' });
+  }
+
+  jwt.verify(token, 'secret_key', (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Token inválido' });
+    }
+    req.user = user;
+    next();
+  });
 }
 
 //  Rutas
@@ -172,6 +191,37 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString()
   });
+});
+
+// Ruta para login
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role }, 'secret_key', { expiresIn: '1h' });
+    res.json({ message: 'Login exitoso', token });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al iniciar sesión' });
+  }
+});
+
+// Ejemplo de ruta protegida
+app.get('/api/protected', authenticateToken, (req, res) => {
+  res.json({ message: 'Acceso autorizado', user: req.user });
 });
 
 // ==================== SOCKET.IO - CONEXIONES EN TIEMPO REAL ====================
