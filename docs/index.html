@@ -25,7 +25,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
   <script type="text/babel">   
-// --- inicio App.jsx inline ---
+
 const roadsData = [
   { id: 1, title: "Vía Quibdó - Medellín (Túnel de Occidente)", status: "Regular", scope: "exterior", from: "Quibdó", to: "Medellín", km: "240 km", desc: "Principal vía que conecta el Chocó con Antioquia. Atraviesa Carmen de Atrato y El Carmen de Atrato.", humidity: 78, precip: 55, temperature: 24, lastChecked: "10:30 AM", updated: "2 nov 2025, 10:30 AM" },
   { id: 2, title: "Vía Quibdó - Pereira (Anserma - Tadó)", status: "Regular", scope: "exterior", from: "Quibdó", to: "Pereira", km: "195 km", desc: "Conecta con Risaralda pasando por Tadó. Estado variable según temporada de lluvias.", humidity: 83, precip: 65, temperature: 23, lastChecked: "8:00 AM", updated: "2 nov 2025, 8:00 AM" },
@@ -95,46 +95,23 @@ function LoginModal({ onClose, onShowRegister, onLogin }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-50 rounded-lg shadow-2xl w-full max-w-md p-8 relative" style={{backgroundColor:'#f8fafc'}}>
+      <div className="bg-gray-50 rounded-lg shadow-2xl w-full max-w-md p-8 relative" style={{backgroundColor:'#f8fafc',}}>
         {/* Botón X para cerrar */}
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition"
-        >
-          ✕
-        </button>
+        <button type="button" onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition">✕</button>
         
-        <h2 className="text-3xl font-bold mb-6" style={{color:'#030213'}}>Iniciar sesión</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <h2 className="text-3xl font-bold mb-6" style={{color:'#030213',}}>Iniciar sesión</h2>
+        <form className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Correo electrónico</label>
-            <input 
-              id="email" 
-              name="email" 
-              type="email" 
-              placeholder="tu@email.com"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition"
-              style={{borderColor:'#bfdbfe', color:'#1a1a1a', backgroundColor:'white', '--tw-ring-color':'#2563eb'}}
-            />
+            <label htmlFor="email" className="block text-sm font-semibold mb-2" style={{color:'#030213',}}>Correo electrónico</label>
+            <input id="email" name="email" type="email" placeholder="tu@email.com" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', color:'#1a1a1a', backgroundColor:'white',}} />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Contraseña</label>
-            <input 
-              id="password" 
-              name="password" 
-              type="password"
-              placeholder="••••••••"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition"
-              style={{borderColor:'#bfdbfe', color:'#1a1a1a', backgroundColor:'white'}}
-            />
+            <label htmlFor="password" className="block text-sm font-semibold mb-2" style={{color:'#030213',}}>Contraseña</label>
+            <input id="password" name="password" type="password" placeholder="••••••••" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition" style={{borderColor:'#bfdbfe', color:'#1a1a1a', backgroundColor:'white',}} />
           </div>
           <div className="flex gap-2 justify-end pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 font-semibold rounded-lg transition" style={{color:'#717182', backgroundColor:'#efefff'}}>
-              Cancelar
-            </button>
-            <button type="submit" className="px-6 py-2 text-white font-bold rounded-lg transition" style={{backgroundColor:'#030213'}}>
-              Entrar
-            </button>
+            <button type="button" className="px-4 py-2 font-semibold rounded-lg transition" style={{color:'#717182', backgroundColor:'#efefff',}}>Cancelar</button>
+            <button type="submit" className="px-6 py-2 text-white font-bold rounded-lg transition" style={{backgroundColor:'#030213',}}>Entrar</button>
           </div>
         </form>
         
@@ -148,16 +125,9 @@ function LoginModal({ onClose, onShowRegister, onLogin }) {
         {/* Botón de Google */}
         <div id="google-signin-button" className="flex justify-center"></div>
         
-        <p className="text-center text-sm mt-4" style={{color:'#717182'}}>
+        <p className="text-center text-sm mt-4" style={{color:'#717182',}}>
           ¿No tienes cuenta? 
-          <button 
-            type="button"
-            onClick={onShowRegister}
-            className="font-semibold hover:underline ml-1 transition"
-            style={{color:'#2563eb'}}
-          >
-            Regístrate aquí
-          </button>
+          <button type="button" className="font-semibold hover:underline ml-1 transition" style={{color:'#2563eb',}}>Regístrate aquí</button>
         </p>
       </div>
     </div>
@@ -542,13 +512,9 @@ function MapComponent({ reports, highlightReportId, enableClickToSet, onMapClick
   return (
     <div 
       ref={mapRef} 
+      className="w-full"
       style={{
-        width: '100%',
-        height: '500px',
-        borderRadius: '12px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-        border: '1px solid #e5e7eb',
-        marginBottom: '2rem',
+        height: '400px',
         zIndex: 0
       }}
     ></div>
@@ -585,7 +551,9 @@ function ReportDetailsModal({ report, onClose }) {
         </div>
         {report.outsideChoco && (
           <div className="mb-2">
-            <span className="font-bold text-gray-700">Nota:</span> <span className="inline-block px-2 py-1 rounded text-white" style={{backgroundColor:'#6b7280'}}>Reporte fuera del área del Chocó</span>
+            <span className="font-bold text-gray-700">Nota:</span> <span className="inline-block px-2 py-1 rounded text-white" style={{backgroundColor:'#6b7280'}}>
+            Reporte fuera del área del Chocó
+          </span>
           </div>
         )}
         {/* Mostrar foto/video si existe */}
@@ -728,7 +696,7 @@ function AdminPanel({ reports, setReports, users, setUsers, roads, onClose, apiA
 
       {/* Tabs */}
       <div className="bg-gray-50 px-3 md:px-6 py-3 md:py-4 border-b flex gap-2 md:gap-4 flex-wrap sticky top-16 overflow-x-auto z-40 shadow-sm">
-        <button onClick={()=>{setTab('reports'); setFilter('all');}} className={`px-3 md:px-4 py-2 rounded-lg font-semibold transition text-sm md:text-base whitespace-nowrap ${tab==='reports' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>📋 Reportes</button>
+        <button onClick={()=>{setTab('reports'); setFilter('all')}} className={`px-3 md:px-4 py-2 rounded-lg font-semibold transition text-sm md:text-base whitespace-nowrap ${tab==='reports' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>📋 Reportes</button>
         <button onClick={()=>setTab('users')} className={`px-3 md:px-4 py-2 rounded-lg font-semibold transition text-sm md:text-base whitespace-nowrap ${tab==='users' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>👥 Usuarios</button>
         <button onClick={()=>setTab('roads')} className={`px-3 md:px-4 py-2 rounded-lg font-semibold transition text-sm md:text-base whitespace-nowrap ${tab==='roads' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>🛣️ Estado de Vías</button>
         <button onClick={()=>setTab('weather')} className={`px-3 md:px-4 py-2 rounded-lg font-semibold transition text-sm md:text-base whitespace-nowrap ${tab==='weather' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-100'}`}>🌤️ Clima</button>
@@ -1226,13 +1194,13 @@ function AboutSection() {
     <section id="about-section" className="w-full max-w-3xl mx-auto my-12 p-8 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4" style={{color:'#030213'}}>Sobre Nosotros</h2>
       <div className="mb-4">
-        <span className="font-semibold">Creador:</span> Luis Alexander Marturana,Ashley Sofia Panesso Palacios,Carlos Mauricio Machado Cordoba,Boris Leon Valoy Hinestroza, Jhaymar Smith Caicedo Garces
+        <span className="font-semibold">Creador:</span> Luis Alexander Marturana
        </div>
       <div className="mb-4"> 
         <span className="font-semibold">Carrera:</span> Ingeniería de Sistemas
       </div>
       <div className="mb-4">
-        <span className="font-semibold">Semestre:</span> 3°
+        <span className="font-semibold">Semestre:</span> 2°
       </div>
       <div className="mb-4">
         <span className="font-semibold">Correo:</span> alrxandermarturana76@gmail.com
@@ -1244,27 +1212,6 @@ function AboutSection() {
         Puedes contribuir reportando incidentes, condiciones de la vía, y compartiendo información útil para la comunidad. ¡Juntos hacemos mejores caminos!
       </p>
     </section>
-  );
-}
-
-function Header() {
-  // ...existing code...
-  return (
-    <header className="w-full bg-white shadow-md py-4 px-6 flex justify-between items-center">
-      {/* ...otros elementos... */}
-      <nav>
-        <button
-          className="px-4 py-2 font-semibold text-blue-700 hover:underline"
-          onClick={() => {
-            const aboutSection = document.getElementById('about-section');
-            if (aboutSection) aboutSection.scrollIntoView({ behavior: 'smooth' });
-          }}
-        >
-          Sobre Nosotros
-        </button>
-        {/* ...otros botones... */}
-      </nav>
-    </header>
   );
 }
 
@@ -1294,6 +1241,19 @@ function App() {
   const [pendingCoords, setPendingCoords] = React.useState(null); // {lat,lng} seleccionadas desde el mapa
   const [apiAvailable, setApiAvailable] = React.useState(false); // true si el servidor está disponible
   const [selectedCoords, setSelectedCoords] = React.useState(null); // {lat,lng} para llenar el formulario
+
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+    setUserName('');
+    setShowMenu(false);
+  };
+
+  const handleAboutClick = () => {
+    const el = document.getElementById('about-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Calcular estado actualizado de las vías basado en reportes aprobados
   const updatedRoads = React.useMemo(() => {
@@ -1804,116 +1764,266 @@ function App() {
     );
   }
 
+  // Calcular estado global basado en los reportes
+  const getGlobalStatus = () => {
+    const badCount = reports.filter(r => r.status === 'Mala' || r.status === 'Cerrada').length;
+    const regularCount = reports.filter(r => r.status === 'Regular').length;
+    if (badCount >= 2) return { label: 'Riesgo alto', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300' };
+    if (regularCount >= 3 || badCount === 1) return { label: 'Riesgo medio', bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' };
+    return { label: 'Riesgo bajo', bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' };
+  };
+  const globalStatus = getGlobalStatus();
+
   // Vista principal (contenido normal cuando view === 'main')
   return (
-    <div className="app min-h-screen bg-gray-50">
-      {/* Header con logo de fondo */}
-      <div className="relative w-full h-56 md:h-72 flex items-center justify-center" style={{backgroundImage: "url('img/LOGOCHCOCVIA.jpg')", backgroundSize: 'cover', backgroundPosition: 'center'}}>
-        <div className="absolute inset-0 bg-black/30"></div>
-        <div className="relative z-10 text-center w-full">
-          <h1 className="text-5xl md:text-6xl font-black text-white drop-shadow-lg mb-2">Vías del Chocó</h1>
-          <p className="text-lg md:text-2xl text-gray-100 drop-shadow mb-4">Información actualizada sobre el estado de las carreteras</p>
-        </div>
-        {/* Menú flotante sticky */}
-        <nav className="fixed top-0 left-0 w-full bg-white/95 backdrop-blur-lg shadow-xl border-b-2 border-blue-600 flex items-center justify-between px-6 py-4 md:px-12 md:py-5 z-50">
-          <div className="flex items-center gap-3">
-            <span className="font-black text-xl md:text-2xl text-blue-700">Vías del Chocó</span>
-          </div>
-          <div className="hidden md:flex gap-8 items-center">
-            <button className={`font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 ${activeTab==='all' ? 'bg-blue-100 text-blue-700 shadow-md' : 'text-gray-700 hover:bg-gray-100 hover:shadow-sm'}`} onClick={()=>setActiveTab('all')}>Todos los Reportes</button>
-            <button className="font-semibold px-5 py-2.5 rounded-xl text-gray-700 hover:bg-gray-100 hover:shadow-sm transition-all duration-200" onClick={() => { const el = document.getElementById('about-section'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }}>Sobre nosotros</button>
-            <div className="w-px h-6 bg-gray-300"></div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold text-gray-700">{userName}</span>
-                    {isAdmin && (
-                      <button onClick={()=>setView('admin')} className="font-semibold px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg transition-all duration-200">Panel Admin</button>
-                    )}
-              <button onClick={()=>{ localStorage.removeItem('currentUser'); setIsAuthenticated(false); setIsAdmin(false); setUserName(''); setShowMenu(false); }} className="font-semibold px-5 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 hover:shadow-lg transition-all duration-200">Cerrar Sesión</button>
-            </div>
-          </div>
-          {/* Menú hamburguesa móvil */}
-          <div className="md:hidden">
-            <button onClick={()=>setShowMenu(m=>!m)} className="p-3 rounded-xl bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all duration-200">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M4.75 6.75h14.5M4.75 12h14.5M4.75 17.25h14.5" /></svg>
-            </button>
-            {showMenu && (
-              <div className="absolute top-20 left-0 w-full bg-white/95 backdrop-blur-lg shadow-2xl rounded-b-2xl border-t border-gray-200 flex flex-col gap-3 p-6 z-50">
-                <button className={`font-semibold px-5 py-3 rounded-xl transition-all duration-200 ${activeTab==='all' ? 'bg-blue-100 text-blue-700 shadow-md' : 'text-gray-700 hover:bg-gray-100'}`} onClick={()=>{setActiveTab('all');setShowMenu(false);}}>Todos los Reportes</button>
-                <button className="font-semibold px-5 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition-all duration-200" onClick={()=>{ const el = document.getElementById('about-section'); if (el) el.scrollIntoView({ behavior: 'smooth' }); setShowMenu(false); }}>Sobre nosotros</button>
-                <div className="border-t border-gray-200 my-2"></div>
-                <div className="px-4 py-2">
-                  <p className="text-xs text-gray-500 mb-2">Sesión: <span className="font-semibold text-gray-700">{userName}</span></p>
-                </div>
-                {isAdmin && (
-                  <button onClick={()=>{ setView('admin'); setShowMenu(false); }} className="font-semibold px-5 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 text-center">Panel Admin</button>
-                )}
-                <button onClick={()=>{ localStorage.removeItem('currentUser'); setIsAuthenticated(false); setIsAdmin(false); setUserName(''); setShowMenu(false); }} className="font-semibold px-5 py-3 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all duration-200 text-center">🚪 Cerrar Sesión</button>
-              </div>
-            )}
-          </div>
-        </nav>
-      </div>
+    <div>
+      <header className="w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
 
-      <main className="flex-1 container mx-auto px-2 md:px-8 pt-24 pb-8">
-        <Stats />
-        <LiveRoadStatus roads={updatedRoads} />
-        
-        {/* Mapa en tiempo real */}
-        <section className="mb-12">
-          <div className="mb-4">
-            <h2 className="text-3xl font-bold text-gray-800">📍 Mapa en Tiempo Real</h2>
-            <p className="text-gray-600 mt-2">Visualiza la ubicación de todos los reportes de vías en el Chocó</p>
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <img 
+              src="img/logoviaa.png" 
+              alt="Logo" 
+              className="w-8 h-8 object-contain"
+            />
+            <span className="text-lg font-bold text-gray-800">
+              Vías <span className="text-green-600">Chocó</span>
+            </span>
           </div>
-          <MapComponent
-            reports={reports}
-            highlightReportId={highlightReportId}
-            enableClickToSet={mapClickMode}
-            onMapClick={handleMapClick}
-            tempMarker={selectedCoords}
-          />
-          
-          {/* Leyenda del mapa */}
-          <div className="mt-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <h3 className="font-bold text-gray-800 mb-3">Leyenda de Estados:</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="flex items-center gap-2">
-                <div style={{width: '20px', height: '20px', backgroundColor: '#22c55e', borderRadius: '50%'}}></div>
-                <span className="text-sm text-gray-700">Buena</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div style={{width: '20px', height: '20px', backgroundColor: '#eab308', borderRadius: '50%'}}></div>
-                <span className="text-sm text-gray-700">Regular</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div style={{width: '20px', height: '20px', backgroundColor: '#f97316', borderRadius: '50%'}}></div>
-                <span className="text-sm text-gray-700">Mala</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div style={{width: '20px', height: '20px', backgroundColor: '#ef4444', borderRadius: '50%'}}></div>
-                <span className="text-sm text-gray-700">Cerrada</span>
-              </div>
+
+          {/* Navegación */}
+          <nav className="hidden md:flex items-center gap-6">
+            <button className="text-gray-700 hover:text-green-600 font-medium transition">
+              Inicio
+            </button>
+            <button className="text-gray-700 hover:text-green-600 font-medium transition">
+              Reportes
+            </button>
+            <button className="text-gray-700 hover:text-green-600 font-medium transition">
+              Mapa
+            </button>
+            <button className="text-gray-700 hover:text-green-600 font-medium transition">
+              Sobre nosotros
+            </button>
+          </nav>
+
+          {/* Estado */}
+          <div className="hidden md:flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full">
+            <span 
+              className="w-2 h-2 rounded-full"
+              style={{
+                backgroundColor:
+                  globalStatus.label === 'Riesgo bajo'
+                    ? '#22c55e'
+                    : globalStatus.label === 'Riesgo medio'
+                    ? '#eab308'
+                    : '#ef4444'
+              }}
+            ></span>
+            <span className="text-sm font-semibold text-gray-700">
+              {globalStatus.label}
+            </span>
+          </div>
+
+          {/* Usuario */}
+          <div className="flex items-center gap-2">
+            <span className="hidden md:block text-sm text-gray-600 font-medium">
+              {userName.split('@')[0]}
+            </span>
+
+            {isAdmin && (
+              <button
+                onClick={() => setView('admin')}
+                className="hidden md:block px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
+              >
+                Admin
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                localStorage.removeItem('currentUser');
+                setIsAuthenticated(false);
+                setIsAdmin(false);
+                setUserName('');
+              }}
+              className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition"
+            >
+              Salir
+            </button>
+          </div>
+
+        </div>
+
+        {/* Estado en móvil */}
+        <div className="md:hidden flex justify-center pb-2">
+          <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full">
+            <span 
+              className="w-2 h-2 rounded-full"
+              style={{
+                backgroundColor:
+                  globalStatus.label === 'Riesgo bajo'
+                    ? '#22c55e'
+                    : globalStatus.label === 'Riesgo medio'
+                    ? '#eab308'
+                    : '#ef4444'
+              }}
+            ></span>
+            <span className="text-xs font-semibold text-gray-700">
+              {globalStatus.label}
+            </span>
+          </div>
+        </div>
+      </header>
+      <main className="flex-1 container mx-auto px-4 md:px-8 py-6" style={{marginTop: '0px'}}>
+        {/* Stats - Estado de las vías */}
+        <section className="mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-green-500">
+              <div className="text-2xl font-bold text-green-600">3</div>
+              <div className="text-sm font-semibold text-gray-600">Vías Buenas</div>
+            </div>
+            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-yellow-500">
+              <div className="text-2xl font-bold text-yellow-600">3</div>
+              <div className="text-sm font-semibold text-gray-600">Vías Regulares</div>
+            </div>
+            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-orange-500">
+              <div className="text-2xl font-bold text-orange-600">1</div>
+              <div className="text-sm font-semibold text-gray-600">Vías Malas</div>
+            </div>
+            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-red-500">
+              <div className="text-2xl font-bold text-red-600">1</div>
+              <div className="text-sm font-semibold text-gray-600">Vías Cerradas</div>
             </div>
           </div>
         </section>
-        
-        <div className="flex flex-col items-center mt-8 mb-6">
-          <button
-            onClick={() => setShowReport(true)}
-            className="px-6 md:px-8 py-3 md:py-4 bg-blue-600 text-white font-bold rounded-lg shadow-lg hover:bg-blue-700 transition duration-300 flex items-center gap-3 text-lg"
-            style={{boxShadow:'0 6px 20px 0 rgba(37,99,235,0.12)'}}
-          >
-            {/* Icono SVG documento + lápiz */}
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5" style={{color:'white'}}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5L20.5 7.5 8 20H4v-4L16.5 3.5z" />
+
+        {/* Layout: Mapa + Panel de alertas */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Mapa principal - 2 columnas */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="p-4 border-b border-gray-100">
+                <h2 className="text-xl font-bold text-gray-800">🗺️ Mapa en Tiempo Real</h2>
+                <p className="text-sm text-gray-500">Ubicación de reportes en el Chocó</p>
+              </div>
+              <MapComponent
+                reports={reports}
+                highlightReportId={highlightReportId}
+                enableClickToSet={mapClickMode}
+                onMapClick={handleMapClick}
+                tempMarker={selectedCoords}
+              />
+              {/* Leyenda */}
+              <div className="p-4 bg-gray-50 border-t border-gray-100">
+                <div className="flex flex-wrap gap-4 justify-center">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                    <span className="text-sm text-gray-600">Buena</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
+                    <span className="text-sm text-gray-600">Regular</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-orange-500"></div>
+                    <span className="text-sm text-gray-600">Mala</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-red-500"></div>
+                    <span className="text-sm text-gray-600">Cerrada</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Panel de alertas - 1 columna */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <h2 className="text-lg font-bold text-gray-800 mb-4">🚨 Alertas Recientes</h2>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {reports.slice(0, 5).map(r => {
+                  const isCritical = r.status === 'Cerrada' || r.status === 'Mala';
+                  const alertClass = isCritical 
+                    ? 'bg-red-50 border-red-300' 
+                    : 'bg-yellow-50 border-yellow-300';
+                  return (
+                    <div key={r.id} className={`p-3 rounded-lg border ${alertClass} cursor-pointer hover:shadow-md transition`} onClick={() => setShowDetails(r)}>
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">{isCritical ? '🔴' : '🟡'}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-gray-800 truncate">{r.title}</p>
+                          <p className="text-xs text-gray-500">{r.location}</p>
+                          <p className="text-xs text-gray-400 mt-1">{r.time}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tarjetas de vías con datos meteorológicos */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">🛣️ Estado de las Vías</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {updatedRoads.map(road => {
+              const statusColors = {
+                'Buena': 'bg-green-100 border-green-400 text-green-800',
+                'Regular': 'bg-yellow-100 border-yellow-400 text-yellow-800',
+                'Mala': 'bg-orange-100 border-orange-400 text-orange-800',
+                'Cerrada': 'bg-red-100 border-red-400 text-red-800'
+              };
+              const colorClass = statusColors[road.status] || 'bg-gray-100 border-gray-400';
+              return (
+                <div key={road.id} className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 border border-gray-100">
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="font-bold text-gray-800 text-sm">{road.title}</h3>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colorClass}`}>{road.status}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 mb-3 space-y-1">
+                    <p>📍 {road.from} → {road.to}</p>
+                    <p>📏 {road.km}</p>
+                  </div>
+                  {/* Datos meteorológicos */}
+                  <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-gray-100">
+                    <div className="text-center">
+                      <div className="text-lg">💧</div>
+                      <div className="text-xs font-semibold text-gray-600">{road.humidity || 75}%</div>
+                      <div className="text-xs text-gray-400">Humedad</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg">🌡️</div>
+                      <div className="text-xs font-semibold text-gray-600">{road.temperature || 24}°C</div>
+                      <div className="text-xs text-gray-400">Temp</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg">🌧️</div>
+                      <div className="text-xs font-semibold text-gray-600">{road.precip || 50}%</div>
+                      <div className="text-xs text-gray-400">Precip</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Botón de reporte */}
+        <div className="flex justify-center mb-8">
+          <button onClick={() => setShowReport(true)} className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition duration-300 flex items-center gap-3 text-lg hover:scale-105 transform">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Hacer Reporte
+            Nuevo Reporte
           </button>
         </div>
-        {/* Modal de detalles de reporte */}
+
         <ReportDetailsModal report={showDetails} onClose={()=>setShowDetails(null)} />
-        
-        {/* Sección Sobre Nosotros debajo de reportes */}
         <AboutSection />
       </main>
 
@@ -2021,17 +2131,17 @@ function App() {
 
               <div>
                 <label htmlFor="report-location" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Ubicación Específica (Kilómetro)</label>
-                <input type="text" id="report-location" name="location" placeholder="Ej: Km 45 - 48" className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}} />
+                <input type="text" id="report-location" name="location" placeholder="Ej: Km 45 - 48" className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a',}} />
               </div>
 
               <div>
-                <label htmlFor="report-comment" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Descripción del Estado</label>
-                <textarea id="report-comment" name="comment" rows="3" placeholder="Describe el problema..." className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}></textarea>
+                <label htmlFor="report-comment" className="block text-sm font-semibold mb-2" style={{color:'#'}}>Descripción del Estado</label>
+                <textarea id="report-comment" name="comment" rows="3" placeholder="Describe el problema..." className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a',}}></textarea>
               </div>
 
               <div>
-                <label htmlFor="report-recommendations" className="block text-sm font-semibold mb-2" style={{color:'#030213'}}>Recomendaciones</label>
-                <textarea id="report-recommendations" name="recommendations" rows="3" placeholder="Ej: Reducir velocidad..." className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}></textarea>
+                <label htmlFor="report-recommendations" className="block text-sm font-semibold mb-2" style={{color:'#'}}>Recomendaciones</label>
+                <textarea id="report-recommendations" name="recommendations" rows="3" placeholder="Ej: Reducir velocidad..." className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition text-sm md:text-base" style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a',}}></textarea>
               </div>
              
               <div>
@@ -2043,7 +2153,7 @@ function App() {
                   multiple 
                   accept="image/*,video/*"
                   className="w-full px-3 md:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition cursor-pointer text-sm md:text-base"
-                  style={{borderColor:'#bfdbfe', backgroundColor:'white', color:'#1a1a1a'}}
+                  style={{borderColor:'#030213', backgroundColor:'white', color:'#030213',}}
                 />
                 <p className="text-xs mt-1" style={{color:'#717182'}}>Soporta imágenes y videos. Máximo 5 archivos.</p>
               </div>
@@ -2083,17 +2193,18 @@ function App() {
             {/* Contacto */}
             <div>
               <h4 className="text-lg font-bold mb-4">Contacto</h4>
-              <p class="text-gray-400 text-sm">
-              📧 <a href="mailto:Alrxandermaturana76@gmail.com" class="text-gray-400 hover:text-blue-400">
-                Alrxandermaturana76@gmail.com
-              </a>
-            </p>
 
-            <p class="text-gray-400 text-sm">
-              📞 <a href="https://wa.me/573145312045" target="_blank" class="text-gray-400 hover:text-green-500">
-                +57 314 531 2045
-              </a>
-            </p>
+              <p className="text-gray-400 text-sm">
+                📧 <a href="mailto:Alrxandermaturana76@gmail.com" className="text-gray-400 hover:text-blue-400">
+                  Alrxandermaturana76@gmail.com
+                </a>
+              </p>
+
+              <p className="text-gray-400 text-sm">
+                📞 <a href="https://wa.me/573145312045" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-green-500">
+                  +57 314 531 2045
+                </a>
+              </p>
 
               <p className="text-gray-400 text-sm">📍 Quibdó, Chocó</p>
             </div>
@@ -2116,7 +2227,7 @@ function App() {
           </div>
         </div>
       </footer>
-      </div>
+    </div>
      );
   }
       
