@@ -24,7 +24,7 @@ const roadCoords = {
 
 const OPEN_WEATHER_API_KEY = '772e3fa3294c7e0ba5ae4dc3e9186362';
 const isLocalDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-const API_BASE_URL = isLocalDev ? 'http://localhost:3001' : 'https://viaschoco-backend-90883169752.southamerica-east1.run.app';
+const API_BASE_URL = isLocalDev ? 'http://localhost:3001' : 'https://viaschoco-backend.onrender.com';
 
 function App() {
   const [showLogin, setShowLogin] = React.useState(false);
