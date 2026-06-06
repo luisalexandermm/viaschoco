@@ -1,56 +1,110 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const http = require('http');
 const socketIO = require('socket.io');
 const path = require('path');
-const mongoose = require('mongoose');
+const fs = require('fs');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 // Importar módulo geosentinel
 const geosentinel = require('../geosentinel');
 
+let db = null;
+let admin = null;
+const localDb = require('./db');
+
+// Inicializar Firebase Admin
+try {
+  admin = require('firebase-admin');
+  const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
+
+  if (fs.existsSync(serviceAccountPath)) {
+    const serviceAccount = require(serviceAccountPath);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log('✓ Firebase Admin inicializado con serviceAccountKey.json');
+  } else {
+    admin.initializeApp();
+    console.log('✓ Firebase Admin inicializado con credenciales predeterminadas de GCP');
+  }
+
+  db = admin.firestore();
+} catch (err) {
+  console.warn('⚠ Firebase Admin no configurado. Usa autenticación local.', err.message);
+}
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, { cors: { origin: "*" } });
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(helmet());
-app.use(express.json());  
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(express.json());
 
 // Servir archivos estáticos (frontend)
-app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Ruta raíz para servir index.html
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+  res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// Datos simulados
-let reports = [
-  {
-    id: 1,
-    title: "Vía Quibdó - Medellín",
-    message: "Estado regular debido a lluvias",
-    user: "usuario1",
-    location: "Km 45",
-    status: "Regular",
-    time: new Date().toISOString(),
-    approved: false,
-    geocoded: false
-  }
-];
+localDb.load();
 
-let users = [
-  { name: "usuario1", email: "usuario1@example.com", password: "pass", role: "user", blocked: false },
-  { name: "admin", email: "alrxandermarturana76.admin@gmail.com", password: "3145312045La", role: "admin", blocked: false }
-];
+// Datos simulados persistentes
+let reports = localDb.getReports();
+let users = localDb.getUsers();
+let nextReportId = reports.reduce((maxId, report) => Math.max(maxId, report.id || 0), 0) + 1;
 
-// ID incremental seguro
-let nextReportId = 2;
+async function getFirestoreReports() {
+  if (!db) return reports;
+  const snapshot = await db.collection('reports').orderBy('createdAt', 'desc').get();
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return { _docId: doc.id, id: data.id || Number(doc.id) || null, ...data };
+  });
+}
+
+async function findFirestoreReportById(id) {
+  if (!db) return reports.find(r => Number(r.id) === Number(id));
+  const snapshot = await db.collection('reports').where('id', '==', Number(id)).limit(1).get();
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  const data = doc.data();
+  return { _docId: doc.id, id: data.id || Number(id), ...data };
+}
+
+async function getFirestoreUsers() {
+  if (!db) return users;
+  const snapshot = await db.collection('users').get();
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    const { password, ...safeUser } = data;
+    return { _docId: doc.id, ...safeUser };
+  });
+}
+
+async function findFirestoreUserByName(name) {
+  if (!db) return users.find(u => u.name === name);
+  const snapshot = await db.collection('users').where('name', '==', name).limit(1).get();
+  if (snapshot.empty) return null;
+  const data = snapshot.docs[0].data();
+  return { _docId: snapshot.docs[0].id, ...data };
+}
+
+async function findFirestoreUserByEmail(email) {
+  if (!db) return users.find(u => u.email === email);
+  const snapshot = await db.collection('users').where('email', '==', email).limit(1).get();
+  if (snapshot.empty) return null;
+  const data = snapshot.docs[0].data();
+  return { _docId: snapshot.docs[0].id, ...data };
+}
 
 // ==================== REGISTRAR RUTAS GEOSENTINEL ====================
 geosentinel.routes(app, io);
@@ -87,12 +141,18 @@ function authenticateToken(req, res, next) {
 //  Rutas
 
 // Obtener reportes
-app.get('/api/reports', (req, res) => {
-  res.json(reports);
+app.get('/api/reports', async (req, res) => {
+  try {
+    const data = await getFirestoreReports();
+    res.json(data);
+  } catch (error) {
+    console.error('Error obteniendo reportes:', error);
+    res.status(500).json({ error: 'Error interno al obtener reportes' });
+  }
 });
 
 // Crear reporte
-app.post('/api/reports', validateReport, (req, res) => {
+app.post('/api/reports', validateReport, async (req, res) => {
   const newReport = {
     id: nextReportId++,
     title: req.body.title,
@@ -101,87 +161,195 @@ app.post('/api/reports', validateReport, (req, res) => {
     location: req.body.location || "",
     status: req.body.status || "Pendiente",
     time: new Date().toISOString(),
+    createdAt: admin ? admin.firestore.FieldValue.serverTimestamp() : new Date().toISOString(),
     approved: false,
     geocoded: false
   };
 
+  if (db) {
+    try {
+      const docRef = await db.collection('reports').add(newReport);
+      res.status(201).json({ _docId: docRef.id, ...newReport });
+    } catch (error) {
+      console.error('Error guardando reporte en Firestore:', error);
+      res.status(500).json({ error: 'No se pudo guardar el reporte' });
+    }
+    return;
+  }
+
   reports.push(newReport);
+  localDb.save();
   res.status(201).json(newReport);
 });
 
 // Actualizar reporte
-app.put('/api/reports/:id', (req, res) => {
+app.put('/api/reports/:id', async (req, res) => {
   const id = parseInt(req.params.id);
-  const report = reports.find(r => r.id === id);
 
+  if (db) {
+    try {
+      const existing = await findFirestoreReportById(id);
+      if (!existing) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+      await db.collection('reports').doc(existing._docId).update(req.body);
+      const updated = await findFirestoreReportById(id);
+      return res.json(updated);
+    } catch (error) {
+      console.error('Error actualizando reporte en Firestore:', error);
+      return res.status(500).json({ error: 'No se pudo actualizar el reporte' });
+    }
+  }
+
+  const report = reports.find(r => r.id === id);
   if (!report) {
     return res.status(404).json({ error: 'Report not found' });
   }
 
   Object.assign(report, req.body);
+  localDb.save();
   res.json(report);
 });
 
 // Eliminar reporte
-app.delete('/api/reports/:id', (req, res) => {
+app.delete('/api/reports/:id', async (req, res) => {
   const id = parseInt(req.params.id);
-  const exists = reports.some(r => r.id === id);
 
+  if (db) {
+    try {
+      const existing = await findFirestoreReportById(id);
+      if (!existing) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+      await db.collection('reports').doc(existing._docId).delete();
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('Error eliminando reporte en Firestore:', error);
+      return res.status(500).json({ error: 'No se pudo eliminar el reporte' });
+    }
+  }
+
+  const exists = reports.some(r => r.id === id);
   if (!exists) {
     return res.status(404).json({ error: 'Report not found' });
   }
 
   reports = reports.filter(r => r.id !== id);
+  localDb.save();
   res.json({ success: true });
 });
 
 // Usuarios
-app.get('/api/users', (req, res) => {
-  res.json(users);
+app.get('/api/users', async (req, res) => {
+  try {
+    const allUsers = await getFirestoreUsers();
+    res.json(allUsers.map(({ password, ...safeUser }) => safeUser));
+  } catch (error) {
+    console.error('Error obteniendo usuarios:', error);
+    res.status(500).json({ error: 'Error interno al obtener usuarios' });
+  }
 });
 
 // Actualizar usuario
-app.put('/api/users/:name', (req, res) => {
+app.put('/api/users/:name', async (req, res) => {
   const name = req.params.name;
-  const user = users.find(u => u.name === name);
 
+  if (db) {
+    try {
+      const user = await findFirestoreUserByName(name);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      await db.collection('users').doc(user._docId).update(req.body);
+      const updatedDoc = await db.collection('users').doc(user._docId).get();
+      const updated = updatedDoc.data();
+      const { password, ...safeUser } = updated;
+      return res.json(safeUser);
+    } catch (error) {
+      console.error('Error actualizando usuario en Firestore:', error);
+      return res.status(500).json({ error: 'No se pudo actualizar el usuario' });
+    }
+  }
+
+  const user = users.find(u => u.name === name);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
   Object.assign(user, req.body);
-  res.json(user);
+  localDb.save();
+  const { password, ...safeUser } = user;
+  res.json(safeUser);
 });
 
 // Login
-app.post('/api/users', (req, res) => {
-  const { email, password, googleAuth } = req.body;
-  if (googleAuth) {
-    const user = users.find(u => u.email === email);
-    if (user) {
-      res.json({ exists: true, role: user.role, name: user.name });
+app.post('/api/users/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    if (db) {
+      // Usar Firebase Firestore
+      const userSnapshot = await db.collection('users').where('email', '==', email).limit(1).get();
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        const user = userDoc.data();
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (isValidPassword) {
+          res.json({ exists: true, role: user.role, name: user.name });
+        } else {
+          res.json({ exists: false });
+        }
+      } else {
+        res.json({ exists: false });
+      }
     } else {
-      res.json({ exists: false });
+      const user = users.find(u => u.email === email);
+      if (user && await bcrypt.compare(password, user.password)) {
+        res.json({ exists: true, role: user.role, name: user.name });
+      } else {
+        res.json({ exists: false });
+      }
     }
-  } else {
-    const user = users.find(u => u.email === email && u.password === password);
-    if (user) {
-      res.json({ exists: true, role: user.role, name: user.name });
-    } else {
-      res.json({ exists: false });
-    }
+  } catch (error) {
+    console.error('Error verifying user:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 // Registro
-app.put('/api/users', (req, res) => {
-  const { name, email, password, googleAuth } = req.body;
-  const existing = users.find(u => u.email === email);
-  if (existing) {
-    res.status(400).json({ error: 'Usuario ya existe' });
-  } else {
-    users.push({ name, email, password: googleAuth ? null : password, role: 'user', blocked: false });
-    res.json({ success: true });
+app.post('/api/users', async (req, res) => {
+  const { name, email, password } = req.body;
+  try {
+    if (db) {
+      // Usar Firebase Firestore
+      const existingSnapshot = await db.collection('users').where('email', '==', email).limit(1).get();
+      if (!existingSnapshot.empty) {
+        res.status(400).json({ error: 'Usuario ya existe' });
+      } else {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await db.collection('users').add({
+          name,
+          email,
+          password: hashedPassword,
+          role: 'user',
+          blocked: false
+        });
+        res.json({ success: true });
+      }
+    } else {
+      // Usar array local de usuarios
+      const existing = users.find(u => u.email === email);
+      if (existing) {
+        res.status(400).json({ error: 'Usuario ya existe' });
+      } else {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        users.push({ name, email, password: hashedPassword, role: 'user', blocked: false });
+        localDb.save();
+        res.json({ success: true });
+      }
+    }
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
@@ -193,7 +361,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Ruta para login
+// Weather API
+app.get('/api/weather', async (req, res) => {
+  try {
+    const weather = await geosentinel.weather.getRouteWeather();
+    res.json(weather);
+  } catch (error) {
+    res.status(500).json({ error: 'Error obteniendo clima' });
+  }
+});
+
+// Ruta para login con JWT
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -202,7 +380,17 @@ app.post('/api/login', async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email });
+    let user = null;
+
+    if (db) {
+      const userSnapshot = await db.collection('users').where('email', '==', email).limit(1).get();
+      if (!userSnapshot.empty) {
+        user = userSnapshot.docs[0].data();
+      }
+    } else {
+      user = users.find((u) => u.email === email);
+    }
+
     if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
@@ -212,9 +400,10 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, 'secret_key', { expiresIn: '1h' });
-    res.json({ message: 'Login exitoso', token });
+    const token = jwt.sign({ email: user.email, role: user.role, name: user.name }, 'secret_key', { expiresIn: '1h' });
+    res.json({ message: 'Login exitoso', token, name: user.name, role: user.role });
   } catch (error) {
+    console.error('Error al iniciar sesión:', error);
     res.status(500).json({ error: 'Error al iniciar sesión' });
   }
 });
@@ -222,6 +411,14 @@ app.post('/api/login', async (req, res) => {
 // Ejemplo de ruta protegida
 app.get('/api/protected', authenticateToken, (req, res) => {
   res.json({ message: 'Acceso autorizado', user: req.user });
+});
+
+// Fallback para SPA preview local
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'Endpoint no encontrado' });
+  }
+  res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 // ==================== SOCKET.IO - CONEXIONES EN TIEMPO REAL ====================

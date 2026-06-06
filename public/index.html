@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#030213" />
+  <meta name="robots" content="index, follow" />
+  <meta name="description" content="Vías del Chocó: plataforma colaborativa para reportes de estado de carreteras en tiempo real." />
+  <meta name="keywords" content="Vias del Choco, reporte de carreteras, estado de vias, transito, Choco, Colombia" />
+  <link rel="canonical" href="https://tu-dominio.com/" />
+  <link rel="icon" type="image/png" href="img/logoviaa.png" />
+  <title>Vias del Choco - Informacion en Tiempo Real</title>
+  <link rel="stylesheet" href="estilos/estilos.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+</head>
+<body class="bg-slate-100">
+  <div id="aplicacion"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel" data-presets="react" src="js/componentes/Header.js"></script>
+  <script type="text/babel" data-presets="react" src="js/componentes/Footer.js"></script>
+  <script type="text/babel" data-presets="react" src="js/componentes/LoginModal.js"></script>
+  <script type="text/babel" data-presets="react" src="js/componentes/RegisterModal.js"></script>
+  <script type="text/babel" data-presets="react" src="js/componentes/MapComponent.js"></script>
+  <script type="text/babel" data-presets="react" src="js/componentes/ReportDetailsModal.js"></script>
+  <script type="text/babel" data-presets="react" src="js/componentes/AdminPanel.js"></script>
+  <script type="text/babel" data-presets="react" src="js/componentes/AdminPanelClean.js"></script>
+  <script type="text/babel" data-presets="react" src="js/componentes/LoadingOverlay.js"></script>
+  <script type="text/babel" data-presets="react" src="js/paginas/Home.js"></script>
+  <script type="text/babel" data-presets="react" src="js/paginas/Reportes.js"></script>
+  <script type="text/babel" data-presets="react" src="js/paginas/SobreNosotros.js"></script>
+  <script type="text/babel" data-presets="react" src="js/paginas/Legal.js"></script>
+  <script type="text/babel" data-presets="react" src="js/paginas/TerminosCondiciones.js"></script>
+  <script type="text/babel" data-presets="react" src="js/main.js"></script>
+</body>
+</html>

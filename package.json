@@ -1,0 +1,26 @@
+{
+  "name": "vias-choco",
+  "version": "1.0.0",
+  "description": "Vías del Chocó - Información vial en tiempo real",
+  "main": "src/main.jsx",
+  "scripts": {
+    "dev": "node preview.js",
+    "build": "echo \"No se necesita compilación para el preview estático. Usa npm run preview.\"",
+    "preview": "node preview.js",
+    "start": "npm run preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "leaflet": "^1.9.4",
+    "@turf/turf": "^6.5.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.3.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24"
+  },
+  "keywords": ["vias", "choco", "carreteras", "reportes"],
+  "author": "Maturana Innovate Tech",
+  "license": "MIT"
+}

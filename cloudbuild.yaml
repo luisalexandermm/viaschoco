@@ -1,0 +1,11 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+  - build
+  - -t
+  - gcr.io/vias-choco/viaschoco-backend
+  - -f
+  - backend/Dockerfile
+  - .
+images:
+- gcr.io/vias-choco/viaschoco-backend

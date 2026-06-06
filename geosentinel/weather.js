@@ -3,6 +3,8 @@
  * Integración con OpenWeatherMap API y simulación
  */
 
+const fetch = globalThis.fetch || ((...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args)));
+
 let weatherData = {
   temperature: 28,
   humidity: 75,
@@ -58,10 +60,52 @@ function isDangerousWeather() {
   return weatherData.rainfall > 50 || weatherData.humidity > 85;
 }
 
+/**
+ * Obtener clima de una ciudad desde OpenWeatherMap
+ */
+async function fetchWeather(city) {
+  const apiKey = process.env.OPENWEATHER_API_KEY;
+  if (!apiKey) {
+    console.error('OPENWEATHER_API_KEY no configurada');
+    return null;
+  }
+  const encodedCity = encodeURIComponent(city);
+  const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodedCity}&appid=${apiKey}&units=metric&lang=es`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenWeather error ${response.status}: ${errorText}`);
+    }
+    const data = await response.json();
+    return {
+      temperature: data.main.temp,
+      description: data.weather[0].description,
+      icon: data.weather[0].icon,
+      humidity: data.main.humidity,
+      rainfall: data.rain ? data.rain['1h'] || 0 : 0
+    };
+  } catch (error) {
+    console.error('Error fetching weather for', city, error);
+    return null;
+  }
+}
+
+/**
+ * Obtener clima para las rutas
+ */
+async function getRouteWeather() {
+  const quibdo = await fetchWeather('Quibdó,CO');
+  const tado = await fetchWeather('Tadó,CO');
+  return { quibdo, tado };
+}
+
 module.exports = {
   getWeather,
   updateWeather,
   simulateWeather,
   calculateWeatherRiskFactor,
-  isDangerousWeather
+  isDangerousWeather,
+  fetchWeather,
+  getRouteWeather
 };
