@@ -14,6 +14,8 @@ const geosentinel = require('../geosentinel');
 
 let db = null;
 let admin = null;
+let mongoose = null;
+let useMongo = false;
 const localDb = require('./db');
 
 // Inicializar Firebase Admin (completamente opcional)
@@ -37,6 +39,22 @@ try {
   }
 } catch (err) {
   console.warn('⚠ Error al verificar Firebase:', err.message);
+}
+
+// Conectar a MongoDB Atlas si MONGODB_URI está presente
+try {
+  const MONGODB_URI = process.env.MONGODB_URI;
+  if (MONGODB_URI) {
+    mongoose = require('mongoose');
+    mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true }).then(() => {
+      console.log('✓ Conectado a MongoDB');
+    }).catch(err => {
+      console.warn('⚠ No se pudo conectar a MongoDB:', err.message);
+    });
+    useMongo = true;
+  }
+} catch (err) {
+  console.warn('⚠ Error al inicializar Mongoose:', err.message);
 }
 
 const app = express();
@@ -65,6 +83,11 @@ let users = localDb.getUsers();
 let nextReportId = reports.reduce((maxId, report) => Math.max(maxId, report.id || 0), 0) + 1;
 
 async function getFirestoreReports() {
+  if (useMongo) {
+    const Report = require('./models/Report');
+    const docs = await Report.find().sort({ createdAt: -1 }).lean();
+    return docs.map(d => ({ _docId: d._id, id: d.id, ...d }));
+  }
   if (!db) return reports;
   const snapshot = await db.collection('reports').orderBy('createdAt', 'desc').get();
   return snapshot.docs.map(doc => {
@@ -74,6 +97,12 @@ async function getFirestoreReports() {
 }
 
 async function findFirestoreReportById(id) {
+  if (useMongo) {
+    const Report = require('./models/Report');
+    const doc = await Report.findOne({ id: Number(id) }).lean();
+    if (!doc) return null;
+    return { _docId: doc._id, id: doc.id, ...doc };
+  }
   if (!db) return reports.find(r => Number(r.id) === Number(id));
   const snapshot = await db.collection('reports').where('id', '==', Number(id)).limit(1).get();
   if (snapshot.empty) return null;
@@ -83,6 +112,14 @@ async function findFirestoreReportById(id) {
 }
 
 async function getFirestoreUsers() {
+  if (useMongo) {
+    const User = require('./models/User');
+    const docs = await User.find().lean();
+    return docs.map(d => {
+      const { password, ...safeUser } = d;
+      return { _docId: d._id, ...safeUser };
+    });
+  }
   if (!db) return users;
   const snapshot = await db.collection('users').get();
   return snapshot.docs.map(doc => {
@@ -93,6 +130,12 @@ async function getFirestoreUsers() {
 }
 
 async function findFirestoreUserByName(name) {
+  if (useMongo) {
+    const User = require('./models/User');
+    const doc = await User.findOne({ name }).lean();
+    if (!doc) return null;
+    return { _docId: doc._id, ...doc };
+  }
   if (!db) return users.find(u => u.name === name);
   const snapshot = await db.collection('users').where('name', '==', name).limit(1).get();
   if (snapshot.empty) return null;
@@ -101,6 +144,12 @@ async function findFirestoreUserByName(name) {
 }
 
 async function findFirestoreUserByEmail(email) {
+  if (useMongo) {
+    const User = require('./models/User');
+    const doc = await User.findOne({ email }).lean();
+    if (!doc) return null;
+    return { _docId: doc._id, ...doc };
+  }
   if (!db) return users.find(u => u.email === email);
   const snapshot = await db.collection('users').where('email', '==', email).limit(1).get();
   if (snapshot.empty) return null;
@@ -163,7 +212,7 @@ app.post('/api/reports', validateReport, async (req, res) => {
     location: req.body.location || "",
     status: req.body.status || "Pendiente",
     time: new Date().toISOString(),
-    createdAt: admin ? admin.firestore.FieldValue.serverTimestamp() : new Date().toISOString(),
+    createdAt: useMongo ? new Date() : (admin ? admin.firestore.FieldValue.serverTimestamp() : new Date().toISOString()),
     approved: false,
     geocoded: false
   };
@@ -177,6 +226,18 @@ app.post('/api/reports', validateReport, async (req, res) => {
       res.status(500).json({ error: 'No se pudo guardar el reporte' });
     }
     return;
+  }
+
+  if (useMongo) {
+    try {
+      const Report = require('./models/Report');
+      const created = await Report.create(newReport);
+      res.status(201).json({ _docId: created._id, ...newReport });
+      return;
+    } catch (error) {
+      console.error('Error guardando reporte en MongoDB:', error);
+      return res.status(500).json({ error: 'No se pudo guardar el reporte' });
+    }
   }
 
   reports.push(newReport);
@@ -199,6 +260,18 @@ app.put('/api/reports/:id', async (req, res) => {
       return res.json(updated);
     } catch (error) {
       console.error('Error actualizando reporte en Firestore:', error);
+      return res.status(500).json({ error: 'No se pudo actualizar el reporte' });
+    }
+  }
+
+  if (useMongo) {
+    try {
+      const Report = require('./models/Report');
+      const updated = await Report.findOneAndUpdate({ id: Number(id) }, req.body, { new: true }).lean();
+      if (!updated) return res.status(404).json({ error: 'Report not found' });
+      return res.json({ _docId: updated._id, ...updated });
+    } catch (error) {
+      console.error('Error actualizando reporte en MongoDB:', error);
       return res.status(500).json({ error: 'No se pudo actualizar el reporte' });
     }
   }
@@ -227,6 +300,18 @@ app.delete('/api/reports/:id', async (req, res) => {
       return res.json({ success: true });
     } catch (error) {
       console.error('Error eliminando reporte en Firestore:', error);
+      return res.status(500).json({ error: 'No se pudo eliminar el reporte' });
+    }
+  }
+
+  if (useMongo) {
+    try {
+      const Report = require('./models/Report');
+      const deleted = await Report.findOneAndDelete({ id: Number(id) });
+      if (!deleted) return res.status(404).json({ error: 'Report not found' });
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('Error eliminando reporte en MongoDB:', error);
       return res.status(500).json({ error: 'No se pudo eliminar el reporte' });
     }
   }
@@ -273,6 +358,19 @@ app.put('/api/users/:name', async (req, res) => {
     }
   }
 
+  if (useMongo) {
+    try {
+      const User = require('./models/User');
+      const updated = await User.findOneAndUpdate({ name }, req.body, { new: true }).lean();
+      if (!updated) return res.status(404).json({ error: 'User not found' });
+      const { password, ...safeUser } = updated;
+      return res.json(safeUser);
+    } catch (error) {
+      console.error('Error actualizando usuario en MongoDB:', error);
+      return res.status(500).json({ error: 'No se pudo actualizar el usuario' });
+    }
+  }
+
   const user = users.find(u => u.name === name);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
@@ -288,7 +386,15 @@ app.put('/api/users/:name', async (req, res) => {
 app.post('/api/users/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    if (db) {
+    if (useMongo) {
+      const User = require('./models/User');
+      const userDoc = await User.findOne({ email }).lean();
+      if (userDoc && await bcrypt.compare(password, userDoc.password)) {
+        res.json({ exists: true, role: userDoc.role, name: userDoc.name });
+      } else {
+        res.json({ exists: false });
+      }
+    } else if (db) {
       // Usar Firebase Firestore
       const userSnapshot = await db.collection('users').where('email', '==', email).limit(1).get();
       if (!userSnapshot.empty) {
@@ -321,7 +427,16 @@ app.post('/api/users/login', async (req, res) => {
 app.post('/api/users', async (req, res) => {
   const { name, email, password } = req.body;
   try {
-    if (db) {
+    if (useMongo) {
+      const User = require('./models/User');
+      const existing = await User.findOne({ email }).lean();
+      if (existing) {
+        return res.status(400).json({ error: 'Usuario ya existe' });
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await User.create({ name, email, password: hashedPassword, role: 'user', blocked: false });
+      return res.json({ success: true });
+    } else if (db) {
       // Usar Firebase Firestore
       const existingSnapshot = await db.collection('users').where('email', '==', email).limit(1).get();
       if (!existingSnapshot.empty) {
@@ -384,7 +499,10 @@ app.post('/api/login', async (req, res) => {
   try {
     let user = null;
 
-    if (db) {
+    if (useMongo) {
+      const User = require('./models/User');
+      user = await User.findOne({ email }).lean();
+    } else if (db) {
       const userSnapshot = await db.collection('users').where('email', '==', email).limit(1).get();
       if (!userSnapshot.empty) {
         user = userSnapshot.docs[0].data();
