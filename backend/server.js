@@ -16,25 +16,27 @@ let db = null;
 let admin = null;
 const localDb = require('./db');
 
-// Inicializar Firebase Admin
+// Inicializar Firebase Admin (completamente opcional)
 try {
-  admin = require('firebase-admin');
   const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
-
   if (fs.existsSync(serviceAccountPath)) {
-    const serviceAccount = require(serviceAccountPath);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('✓ Firebase Admin inicializado con serviceAccountKey.json');
+    // Solo si el archivo existe, intentar cargar firebase-admin
+    try {
+      admin = require('firebase-admin');
+      const serviceAccount = require(serviceAccountPath);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      db = admin.firestore();
+      console.log('✓ Firebase Admin inicializado con serviceAccountKey.json');
+    } catch (firebaseErr) {
+      console.warn('⚠ Firebase Admin no se pudo inicializar:', firebaseErr.message);
+    }
   } else {
-    admin.initializeApp();
-    console.log('✓ Firebase Admin inicializado con credenciales predeterminadas de GCP');
+    console.log('ℹ Firebase Admin no configurado. Usando base de datos local.');
   }
-
-  db = admin.firestore();
 } catch (err) {
-  console.warn('⚠ Firebase Admin no configurado. Usa autenticación local.', err.message);
+  console.warn('⚠ Error al verificar Firebase:', err.message);
 }
 
 const app = express();
