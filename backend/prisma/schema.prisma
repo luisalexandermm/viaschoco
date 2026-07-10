@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  USER
+}
+
+enum DeviceStatus {
+  ACTIVE
+  DISABLED
+  MAINTENANCE
+}
+
+enum MeasurementType {
+  TILT
+  HUMIDITY
+  VIBRATION
+  RAINFALL
+  PRESSURE
+}
+
+enum AlertStatus {
+  ACTIVE
+  RESOLVED
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(USER)
+  blocked      Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  reports      Report[]
+}
+
+model Report {
+  id         Int      @id @default(autoincrement())
+  title      String
+  message    String
+  location   String?
+  status     String   @default("Pendiente")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  author     User?    @relation(fields: [authorId], references: [id])
+  authorId   Int?
+}
+
+model Device {
+  id               Int              @id @default(autoincrement())
+  deviceId         String           @unique
+  name             String
+  description      String?
+  latitude         Float
+  longitude        Float
+  status           DeviceStatus     @default(ACTIVE)
+  apiKeyHash       String
+  lastSeenAt       DateTime?
+  lastKeyRotation  DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  readings         SensorReading[]
+  alerts           Alert[]
+}
+
+model SensorReading {
+  id              Int             @id @default(autoincrement())
+  readingUuid     String          @unique
+  device          Device          @relation(fields: [deviceId], references: [id])
+  deviceId        Int
+  measurementType MeasurementType
+  value           Float
+  unit            String?
+  timestamp       DateTime        @default(now())
+  createdAt       DateTime        @default(now())
+}
+
+model Alert {
+  id         Int         @id @default(autoincrement())
+  device     Device?     @relation(fields: [deviceId], references: [id])
+  deviceId   Int?
+  alertType  String
+  severity   String
+  message    String
+  location   String?
+  status     AlertStatus @default(ACTIVE)
+  createdAt  DateTime    @default(now())
+  resolvedAt DateTime?
+}
