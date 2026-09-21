@@ -1,121 +1,131 @@
-window.MapComponent = function MapComponent({ reports, geoSensors = [], geoAlerts = [], highlightReportId, enableClickToSet, onMapClick, tempMarker }) {
-  const mapRef = React.useRef(null);
-  const mapInstance = React.useRef(null);
-  const markers = React.useRef({});
-  const propsRef = React.useRef({ reports, geoSensors, geoAlerts, highlightReportId, enableClickToSet, onMapClick, tempMarker });
+// ============================================================
+//  MAPA (usa la libreria Leaflet)
+//  Muestra marcadores de:
+//    - Reportes de la comunidad (color segun el estado de la via)
+//    - Alertas de sensores (rojo)
+//    - Ubicacion seleccionada al hacer un reporte (verde)
+//  Tambien permite hacer clic para elegir una ubicacion.
+// ============================================================
 
-  const getMarkerColor = (report) => {
-    const status = report && report.status ? report.status : report;
-    if (status === 'Cerrada') return 'red';
-    if (status === 'Mala') return 'orange';
-    if (status === 'Regular') return 'yellow';
-    return 'green';
-  };
+window.MapComponent = function MapComponent(props) {
+  var reportes = props.reportes || [];
+  var alertas = props.alertas || [];
+  var permitirClic = props.permitirClic || false;
+  var alHacerClic = props.alHacerClic;
+  var marcadorTemporal = props.marcadorTemporal || null;
+  var centro = props.centro || [5.7, -76.3];
+  var zoom = props.zoom || 7;
 
-  const createMarkerIcon = (color, symbol = '') => {
+  // Referencias que Leaflet necesita para no crear el mapa dos veces
+  var contenedorRef = React.useRef(null);
+  var mapaRef = React.useRef(null);
+  var capaMarcadores = React.useRef(null);
+  var alHacerClicRef = React.useRef(alHacerClic);
+  var permitirClicRef = React.useRef(permitirClic);
+
+  // Mantenemos actualizadas las referencias del clic
+  React.useEffect(function () {
+    alHacerClicRef.current = alHacerClic;
+    permitirClicRef.current = permitirClic;
+  }, [alHacerClic, permitirClic]);
+
+  // Devuelve un color segun el estado de la via
+  function colorPorEstado(estado) {
+    if (estado === "Cerrada") return "#dc2626"; // rojo
+    if (estado === "Mala") return "#ea580c";     // naranja
+    if (estado === "Regular") return "#f59e0b";  // amarillo
+    return "#16a34a";                             // verde (Buena)
+  }
+
+  // Crea un icono redondo de color para el mapa
+  function crearIcono(color) {
     return L.divIcon({
-      html: `<div style="display:flex;align-items:center;justify-content:center;width:2.3rem;height:2.3rem;border-radius:999px;background:${color};box-shadow:0 10px 24px rgba(0,0,0,0.18);"></div>`,
-      className: ''
+      className: "",
+      html:
+        '<div style="width:20px;height:20px;border-radius:50%;background:' +
+        color +
+        ';border:3px solid white;box-shadow:0 4px 10px rgba(0,0,0,0.3);"></div>',
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
     });
-  };
+  }
 
-  const resolveAlertCoordinates = (alert, sensorMap) => {
-    const sensor = sensorMap[alert.sensorId];
-    if (sensor && sensor.lat && sensor.lng) {
-      return { lat: sensor.lat, lng: sensor.lng };
-    }
-    return { lat: 5.5, lng: -76.0 };
-  };
+  // 1) Crear el mapa una sola vez
+  React.useEffect(function () {
+    if (mapaRef.current) return; // ya existe, no lo creamos de nuevo
 
-  React.useEffect(() => {
-    propsRef.current = { reports, geoSensors, geoAlerts, highlightReportId, enableClickToSet, onMapClick, tempMarker };
-  }, [reports, geoSensors, geoAlerts, highlightReportId, enableClickToSet, onMapClick, tempMarker]);
+    mapaRef.current = L.map(contenedorRef.current, {
+      center: centro,
+      zoom: zoom,
+      attributionControl: false,
+    });
 
-  React.useEffect(() => {
-    if (!mapRef.current) return;
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+    }).addTo(mapaRef.current);
 
-    if (!mapInstance.current) {
-      mapInstance.current = L.map(mapRef.current, {
-        center: [5.7, -76.3],
-        zoom: 7,
-        minZoom: 6,
-        maxZoom: 15,
-        zoomControl: true,
-        attributionControl: false,
-      });
+    // Recalcula el tamano cuando la cuadricula termina de acomodarse.
+    window.requestAnimationFrame(function () {
+      if (mapaRef.current) mapaRef.current.invalidateSize();
+    });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap'
-      }).addTo(mapInstance.current);
+    // Capa donde iran todos los marcadores (para borrarlos facil)
+    capaMarcadores.current = L.layerGroup().addTo(mapaRef.current);
 
-      mapInstance.current.on('click', function(e) {
-        if (propsRef.current.enableClickToSet && propsRef.current.onMapClick) {
-          propsRef.current.onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
-        }
-      });
-    }
+    // Escuchar los clics en el mapa
+    mapaRef.current.on("click", function (e) {
+      if (permitirClicRef.current && alHacerClicRef.current) {
+        alHacerClicRef.current({ lat: e.latlng.lat, lng: e.latlng.lng });
+      }
+    });
 
-    const sensorMap = geoSensors.reduce((acc, sensor) => {
-      if (sensor && sensor.id) acc[sensor.id] = sensor;
-      return acc;
-    }, {});
-
-    const updateMarker = (id, position, icon, popup) => {
-      if (!mapInstance.current) return;
-      if (markers.current[id]) {
-        markers.current[id].setLatLng(position);
-        markers.current[id].setPopupContent(popup);
-      } else {
-        markers.current[id] = L.marker(position, { icon }).addTo(mapInstance.current).bindPopup(popup);
+    // Cuando el componente se cierra, destruimos el mapa para no dejar basura
+    return function () {
+      if (mapaRef.current) {
+        mapaRef.current.remove();
+        mapaRef.current = null;
       }
     };
+  }, []);
 
-    // Reports removed from map display - shown only in dedicated section
-    // reports.forEach(report => {
-    //   const color = getMarkerColor(report);
-    //   updateMarker(`report-${report.id}`, [report.lat, report.lng], createMarkerIcon(color, 'R'), `<strong>${report.title}</strong><br/>${report.location}<br/>${report.status}`);
-    // });
+  // 2) Cada vez que cambian los datos, volvemos a dibujar los marcadores
+  React.useEffect(function () {
+    if (!mapaRef.current || !capaMarcadores.current) return;
+    capaMarcadores.current.clearLayers(); // borramos los anteriores
 
-    // GeoSensors removed from map display - disabled temporarily during geosentinel development
-    // geoSensors.forEach(sensor => {
-    //   if (sensor.lat && sensor.lng) {
-    //     updateMarker(`sensor-${sensor.id}`, [sensor.lat, sensor.lng], createMarkerIcon('#0b84c6', 'S'), `<strong>Sensor</strong><br/>${sensor.name || sensor.id}`);
-    //   }
-    // });
+    // Marcadores de reportes (solo los aprobados)
+    reportes.forEach(function (reporte) {
+      if (!reporte.lat || !reporte.lng) return;
+      if (reporte.aprobado === false) return;
+      var icono = crearIcono(colorPorEstado(reporte.estado));
+      var texto =
+        "<strong>" + (reporte.titulo || "Reporte") + "</strong><br/>" +
+        (reporte.ubicacion || "") + "<br/>Estado: " + reporte.estado;
+      L.marker([reporte.lat, reporte.lng], { icon: icono })
+        .bindPopup(texto)
+        .addTo(capaMarcadores.current);
+    });
 
-    // GeoAlerts removed from map display - disabled temporarily during geosentinel development
-    // geoAlerts.forEach(alert => {
-    //   const coords = resolveAlertCoordinates(alert, sensorMap);
-    //   if (coords) {
-    //     updateMarker(`alert-${alert.id}`, [coords.lat, coords.lng], createMarkerIcon('#dc2626', 'A'), `<strong>Alerta</strong><br/>${alert.message || alert.type}`);
-    //   }
-    // });
+    // Marcadores de alertas de sensores (rojo)
+    alertas.forEach(function (alerta) {
+      if (!alerta.lat || !alerta.lng) return;
+      var icono = crearIcono("#dc2626");
+      var texto =
+        "<strong>⚠ " + (alerta.ubicacion || "Alerta") + "</strong><br/>" +
+        (alerta.resumen || "");
+      L.marker([alerta.lat, alerta.lng], { icon: icono })
+        .bindPopup(texto)
+        .addTo(capaMarcadores.current);
+    });
 
-    if (propsRef.current.highlightReportId) {
-      const id = `report-${propsRef.current.highlightReportId}`;
-      const marker = markers.current[id];
-      if (marker) {
-        marker.openPopup();
-        mapInstance.current.setView(marker.getLatLng(), 10, { animate: true });
-      }
+    // Marcador temporal (cuando el usuario elige ubicacion para un reporte)
+    if (marcadorTemporal) {
+      var iconoTemp = crearIcono("#2f7d50");
+      L.marker([marcadorTemporal.lat, marcadorTemporal.lng], { icon: iconoTemp })
+        .bindPopup("Ubicación seleccionada")
+        .addTo(capaMarcadores.current);
     }
+  }, [reportes, alertas, marcadorTemporal]);
 
-    // Location marker display disabled temporarily
-    // if (propsRef.current.tempMarker) {
-    //   const latLng = [propsRef.current.tempMarker.lat, propsRef.current.tempMarker.lng];
-    //   updateMarker('temp-marker', latLng, createMarkerIcon('#2563eb', '+'), 'Ubicación seleccionada');
-    // }
-
-    return () => {
-      Object.values(markers.current).forEach(marker => {
-        if (mapInstance.current && mapInstance.current.hasLayer(marker)) {
-          mapInstance.current.removeLayer(marker);
-        }
-      });
-      markers.current = {};
-    };
-  }, [reports, geoSensors, geoAlerts]);
-
-  return <div ref={mapRef} className="map-display relative h-[520px] rounded-[2rem] overflow-hidden border border-slate-200 shadow-[0_30px_70px_rgba(15,23,42,0.16)] bg-slate-950/5" />;
-}
+  return <div ref={contenedorRef} className="w-full h-full" />;
+};

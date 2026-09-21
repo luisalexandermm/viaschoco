@@ -1,431 +1,319 @@
-window.AdminPanel = function AdminPanel({ reports, setReports, users, setUsers, roads, adminTab, onClose, apiAvailable, adminName, onNavigate }) {
-  const [tab, setTab] = React.useState(adminTab || 'dashboard');
-  const [selectedReport, setSelectedReport] = React.useState(null);
+// ============================================================
+//  PANEL DE ADMINISTRACION  (rediseño con barra lateral + gráficas)
+//  Todo se conecta al backend a través de window.Api:
+//    - los datos (reportes, vías, alertas) llegan como props
+//    - aprobar/eliminar guardan en el servidor y en el navegador
+//  Las gráficas están hechas con SVG puro (sin librerías externas).
+// ============================================================
 
-  const approvedReports = reports.filter(report => report.approved);
-  const pendingReports = reports.filter(report => !report.approved && !report.flagged);
-  const flaggedReports = reports.filter(report => report.flagged);
-  const usuariosBloqueados = users.filter(u => u.blocked);
-  const usuariosActivos = users.filter(u => !u.blocked);
+// ---- Gráfica de dona: aprobados vs pendientes ----
+function GraficaDona(props) {
+  var aprobados = props.aprobados || 0;
+  var pendientes = props.pendientes || 0;
+  var total = aprobados + pendientes;
 
-  const statusCounts = {
-    Buena: roads.filter(r => r.status === 'Buena').length,
-    Regular: roads.filter(r => r.status === 'Regular').length,
-    Mala: roads.filter(r => r.status === 'Mala').length,
-    Cerrada: roads.filter(r => r.status === 'Cerrada').length,
-  };
-
-  const reportStatusCounts = reports.reduce((acc, report) => {
-    const key = report.status || 'Regular';
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, { Buena: 0, Regular: 0, Mala: 0, Cerrada: 0 });
-
-  const statusData = [
-    { label: 'Buena', value: statusCounts.Buena, color: 'bg-emerald-500' },
-    { label: 'Regular', value: statusCounts.Regular, color: 'bg-amber-500' },
-    { label: 'Mala', value: statusCounts.Mala, color: 'bg-orange-500' },
-    { label: 'Cerrada', value: statusCounts.Cerrada, color: 'bg-red-500' },
-  ];
-
-  const handleApproveReport = (id) => {
-    setReports(prev => prev.map(r => r.id === id ? { ...r, approved: true, flagged: false } : r));
-  };
-
-  const handleFlagReport = (id) => {
-    setReports(prev => prev.map(r => r.id === id ? { ...r, flagged: true, approved: false } : r));
-  };
-
-  const handleDeleteReport = async (id) => {
-    const confirmed = window.confirm('¿Eliminar este informe permanentemente?');
-    if (!confirmed) return;
-
-    setReports(prev => prev.filter(r => r.id !== id));
-
-    try {
-      const response = await fetch(`/api/reports/${id}`, { method: 'DELETE' });
-      if (!response.ok) {
-        throw new Error('La eliminación en servidor falló.');
-      }
-    } catch (error) {
-      console.warn('Error eliminando el informe en backend:', error);
-      window.alert('El reporte se eliminó localmente, pero no se pudo borrar en el servidor.');
-    }
-  };
-
-  const handleBlockUser = (email) => {
-    setUsers(prev => prev.map(u => u.email === email ? { ...u, blocked: !u.blocked } : u));
-  };
-
-  const handleDeleteUser = (email) => {
-    const confirmed = window.confirm('¿Eliminar este usuario permanentemente?');
-    if (!confirmed) return;
-    setUsers(prev => prev.filter(u => u.email !== email));
-  };
-
-  const reportMetrics = [
-    { title: 'Reportes totales', value: reports.length, variant: 'emerald', delta: '18% vs. semana pasada' },
-    { title: 'Vías en buen estado', value: statusCounts.Buena, variant: 'emerald', delta: '8% vs. semana pasada' },
-    { title: 'Vías en mal estado', value: statusCounts.Mala, variant: 'orange', delta: '5% vs. semana pasada' },
-    { title: 'Vías cerradas', value: statusCounts.Cerrada, variant: 'red', delta: '12% vs. semana pasada' },
-  ];
-
-  const today = new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
-  const showName = adminName ? (adminName.includes('@') ? adminName.split('@')[0] : adminName) : 'Admin';
-  const statusBadge = apiAvailable ? 'Conectado' : 'Offline';
-  const statusBadgeClass = apiAvailable ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700';
+  var r = 54;
+  var C = 2 * Math.PI * r;               // circunferencia
+  var largoAprob = total ? (aprobados / total) * C : 0;
+  var largoPend = total ? (pendientes / total) * C : 0;
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-slate-100">
-      {/* HEADER — ocupa todo el ancho */}
-      <header className="w-full bg-slate-100 border-b border-slate-200">
-        <div className="max-w-screen-2xl mx-auto w-full flex flex-col gap-3 px-4 py-3 lg:px-5">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <img src="img/logoviaa.png" alt="Logo" className="w-12 h-12 rounded-2xl object-cover shadow-sm" />
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Administrador</p>
-              <h1 className="text-2xl lg:text-3xl font-black text-slate-950">Panel de administración</h1>
-              <p className="mt-1 text-sm text-slate-600">Bienvenido, <span className="font-semibold text-slate-950">{showName}</span></p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="rounded-3xl bg-slate-950/5 px-4 py-2 text-slate-700 shadow-sm border border-slate-200">
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Hoy</p>
-              <p className="font-semibold">{today}</p>
-            </div>
-            <span className={`rounded-3xl px-4 py-2 text-xs font-semibold ${statusBadgeClass}`}>{statusBadge}</span>
-            <button onClick={onClose} className="rounded-3xl bg-slate-950 px-4 py-2 text-white font-semibold hover:bg-slate-800 transition">Volver</button>
-          </div>
-        </div>
+    <div className="flex items-center gap-6">
+      <svg viewBox="0 0 140 140" className="w-36 h-36 flex-shrink-0">
+        <circle cx="70" cy="70" r={r} fill="none" stroke="#eae7df" strokeWidth="16" />
+        <circle cx="70" cy="70" r={r} fill="none" stroke="#16a34a" strokeWidth="16" strokeLinecap="round"
+          strokeDasharray={largoAprob + " " + (C - largoAprob)} transform="rotate(-90 70 70)" />
+        <circle cx="70" cy="70" r={r} fill="none" stroke="#f59e0b" strokeWidth="16" strokeLinecap="round"
+          strokeDasharray={largoPend + " " + (C - largoPend)} strokeDashoffset={-largoAprob} transform="rotate(-90 70 70)" />
+        <text x="70" y="66" textAnchor="middle" fontSize="26" fontWeight="800" fill="#16201a">{total}</text>
+        <text x="70" y="86" textAnchor="middle" fontSize="11" fill="#5c6b61">reportes</text>
+      </svg>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-sm"><span className="punto punto-buena"></span> Aprobados <b className="ml-1 text-carbon-900">{aprobados}</b></div>
+        <div className="flex items-center gap-2 text-sm"><span className="punto punto-regular"></span> Pendientes <b className="ml-1 text-carbon-900">{pendientes}</b></div>
       </div>
+    </div>
+  );
+}
 
-        {/* NAV TABS */}
-        <div className="max-w-screen-2xl mx-auto w-full px-4 py-2 flex flex-wrap gap-3 lg:px-5">
-          {[
-            { id: 'dashboard', label: 'Inicio' },
-            { id: 'informes', label: 'Informes' },
-            { id: 'usuarios', label: 'Usuarios' },
-            { id: 'carreteras', label: 'Vías' },
-            { id: 'alertas', label: 'Alertas' }
-          ].map(item => (
-            <button
-              key={item.id}
-              onClick={() => setTab(item.id)}
-              className={`rounded-full px-5 py-3 text-sm font-semibold transition ${tab === item.id ? 'bg-emerald-500 text-slate-950 shadow-xl' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </header>
+// ---- Gráfica de barras verticales: vías por estado ----
+function GraficaBarras(props) {
+  var datos = props.datos; // [{texto, cantidad, color}]
+  var maximo = 1;
+  datos.forEach(function (d) { if (d.cantidad > maximo) maximo = d.cantidad; });
 
-      {/* MAIN — mismo max-w que el header, ocupa el resto de la pantalla */}
-      <main className="flex-1 w-full">
-        <div className="max-w-screen-2xl mx-auto w-full px-4 py-6 lg:px-5">
+  return (
+    <svg viewBox="0 0 320 170" className="w-full h-44">
+      {/* lineas guía */}
+      {[0, 1, 2, 3].map(function (i) {
+        var y = 20 + i * 33;
+        return <line key={i} x1="10" y1={y} x2="310" y2={y} stroke="#eae7df" strokeWidth="1" />;
+      })}
+      {datos.map(function (d, i) {
+        var x = 35 + i * 72;
+        var alto = (d.cantidad / maximo) * 110;
+        var y = 130 - alto;
+        return (
+          <g key={d.texto}>
+            <rect x={x} y={y} width="44" height={alto} rx="8" fill={d.color} />
+            <text x={x + 22} y={y - 6} textAnchor="middle" fontSize="14" fontWeight="800" fill="#16201a">{d.cantidad}</text>
+            <text x={x + 22} y="150" textAnchor="middle" fontSize="11" fill="#5c6b61">{d.texto}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
 
-          {/* ─── DASHBOARD ─── */}
-          {tab === 'dashboard' && (
+// ---- Gráfica de barras horizontales: reportes por estado ----
+function GraficaBarrasH(props) {
+  var datos = props.datos; // [{texto, cantidad, color}]
+  var total = 0;
+  datos.forEach(function (d) { total += d.cantidad; });
+  if (total === 0) total = 1;
+
+  return (
+    <div className="space-y-4">
+      {datos.map(function (d) {
+        var porcentaje = Math.round((d.cantidad / total) * 100);
+        return (
+          <div key={d.texto}>
+            <div className="flex justify-between text-sm mb-1">
+              <span className="font-semibold text-carbon-900">{d.texto}</span>
+              <span className="text-slate-500">{d.cantidad} ({porcentaje}%)</span>
+            </div>
+            <div className="w-full h-3 rounded-full bg-white/60 overflow-hidden border border-white/70">
+              <div style={{ width: porcentaje + "%", background: d.color }} className="h-full rounded-full transition-all"></div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================================
+//  PANEL PRINCIPAL
+// ============================================================
+window.AdminPanel = function AdminPanel(props) {
+  var reportes = props.reportes || [];
+  var vias = props.vias || [];
+  var alertas = props.alertas || [];
+  var adminName = props.adminName || "Administrador";
+  var servidorOk = props.servidorOk;
+  var onRefrescar = props.onRefrescar;
+  var onClose = props.onClose;
+  var onAprobarReporte = props.onAprobarReporte;
+  var onEliminarReporte = props.onEliminarReporte;
+
+  // Sección visible del panel
+  var [seccion, setSeccion] = React.useState("resumen");
+
+  var hoy = new Date().toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+
+  // ---- Cálculos con datos reales ----
+  function contarVias(estado) { var t = 0; vias.forEach(function (v) { if (v.estado === estado) t++; }); return t; }
+  function contarReportes(estado) { var t = 0; reportes.forEach(function (r) { if (r.estado === estado) t++; }); return t; }
+
+  var reportesAprobados = reportes.filter(function (r) { return r.aprobado; }).length;
+  var reportesPendientes = reportes.filter(function (r) { return !r.aprobado; }).length;
+
+  var barrasVias = [
+    { texto: "Buenas", cantidad: contarVias("Buena"), color: "#16a34a" },
+    { texto: "Regular", cantidad: contarVias("Regular"), color: "#f59e0b" },
+    { texto: "Malas", cantidad: contarVias("Mala"), color: "#f97316" },
+    { texto: "Cerradas", cantidad: contarVias("Cerrada"), color: "#ef4444" },
+  ];
+  var barrasReportes = [
+    { texto: "Buena", cantidad: contarReportes("Buena"), color: "#16a34a" },
+    { texto: "Regular", cantidad: contarReportes("Regular"), color: "#f59e0b" },
+    { texto: "Mala", cantidad: contarReportes("Mala"), color: "#f97316" },
+    { texto: "Cerrada", cantidad: contarReportes("Cerrada"), color: "#ef4444" },
+  ];
+
+  // KPIs
+  var kpis = [
+    { etiqueta: "Reportes totales", valor: reportes.length, sub: "en la plataforma", acento: "#1f6440" },
+    { etiqueta: "Aprobados", valor: reportesAprobados, sub: "visibles en el mapa", acento: "#16a34a" },
+    { etiqueta: "Pendientes", valor: reportesPendientes, sub: "por revisar", acento: "#f59e0b" },
+    { etiqueta: "Alertas de sensores", valor: alertas.length, sub: "GeoSentinel", acento: "#ef4444" },
+  ];
+
+  var menu = [
+    { id: "resumen", texto: "📊 Resumen" },
+    { id: "reportes", texto: "📍 Reportes" },
+    { id: "vias", texto: "🛣️ Vías" },
+    { id: "alertas", texto: "⚠️ Alertas" },
+  ];
+
+  function confirmarEliminar(id) {
+    if (confirm("¿Seguro que deseas eliminar este reporte?")) onEliminarReporte(id);
+  }
+  function claseBadge(estado) {
+    if (estado === "Buena") return "badge badge-buena";
+    if (estado === "Regular") return "badge badge-regular";
+    if (estado === "Mala") return "badge badge-mala";
+    return "badge badge-cerrada";
+  }
+
+  return (
+    <div className="min-h-screen max-w-7xl mx-auto px-5 md:px-8 py-6">
+      <div className="lg:grid lg:grid-cols-[240px_1fr] lg:gap-6">
+
+        {/* ---------- BARRA LATERAL ---------- */}
+        <aside className="vidrio-claro p-4 mb-6 lg:mb-0 lg:sticky lg:top-6 lg:self-start">
+          <div className="flex items-center gap-3 mb-6 px-1">
+            <img src="img/logoviaa.png" alt="Logo" className="w-10 h-10 rounded-xl object-cover" />
+            <div>
+              <p className="text-xs uppercase tracking-widest text-slate-500">Panel</p>
+              <p className="font-extrabold text-carbon-900 leading-tight">Vías Chocó</p>
+            </div>
+          </div>
+
+          <nav className="flex lg:flex-col gap-2 overflow-x-auto scroll-suave">
+            {menu.map(function (m) {
+              var activo = seccion === m.id ? " activo" : "";
+              return (
+                <button key={m.id} onClick={function () { setSeccion(m.id); }} className={"admin-nav-item" + activo}>
+                  {m.texto}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="hidden lg:block mt-6 pt-4 border-t border-white/50">
+            <p className="text-xs text-slate-500 px-1 mb-1">Sesión</p>
+            <p className="font-semibold text-carbon-900 px-1 mb-3">{adminName}</p>
+            <button onClick={onClose} className="boton-secundario w-full">Salir del panel</button>
+          </div>
+        </aside>
+
+        {/* ---------- CONTENIDO ---------- */}
+        <main className="space-y-8">
+          {/* Barra superior */}
+          <div className="vidrio-claro p-5 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-extrabold text-carbon-900">Hola, {adminName} 👋</h1>
+              <p className="text-sm text-slate-500">{hoy}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/60 border border-white/70 px-3 py-2 text-sm font-semibold text-carbon-900">
+                <span className={"punto-servidor " + (servidorOk ? "serv-on" : "serv-off")}></span>
+                {servidorOk ? "Servidor conectado" : "Modo local"}
+              </span>
+              <button onClick={onRefrescar} className="boton-secundario text-sm">↻ Actualizar</button>
+              <button onClick={onClose} className="boton-primario text-sm lg:hidden">Salir</button>
+            </div>
+          </div>
+
+          {/* ===== RESUMEN ===== */}
+          {seccion === "resumen" && (
             <div className="space-y-6">
-              <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                {/* Panel izquierdo */}
-                <div className="premium-panel bg-white rounded-3xl p-5 shadow-sm border border-slate-200 space-y-5 lg:col-span-2">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                    <div>
-                      <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Resumen completo</p>
-                      <h2 className="text-2xl font-bold text-slate-950 mt-2">Panel de control principal</h2>
+              {/* KPIs */}
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                {kpis.map(function (k) {
+                  return (
+                    <div key={k.etiqueta} className="kpi" style={{ "--acento": k.acento }}>
+                      <p className="text-sm text-slate-500">{k.etiqueta}</p>
+                      <p className="numero-grande mt-3" style={{ color: k.acento }}>{k.valor}</p>
+                      <p className="text-xs text-slate-400 mt-2">{k.sub}</p>
                     </div>
-                    <button
-                      onClick={() => { if (reports && reports.length) setSelectedReport(reports[0]); else window.alert('No hay reportes registrados aún.'); }}
-                      className="rounded-3xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-emerald-600 transition"
-                    >
-                      Ver detalles
-                    </button>
-                  </div>
+                  );
+                })}
+              </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                    {reportMetrics.map(metric => (
-                      <div key={metric.title} className="rounded-3xl border border-slate-200 p-4 bg-white shadow-sm">
-                        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{metric.title}</p>
-                        <p className={`text-3xl font-bold mt-4 ${metric.variant === 'emerald' ? 'text-emerald-600' : metric.variant === 'orange' ? 'text-orange-600' : 'text-red-600'}`}>{metric.value}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Informes por estado */}
-                    <div className="rounded-3xl bg-slate-950/5 border border-slate-200 p-4 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Informes por estado</p>
-                          <p className="text-lg font-semibold text-slate-950 mt-2">{reports.length} totales</p>
-                        </div>
-                        <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold text-emerald-700">Activo</span>
-                      </div>
-                      <div className="mt-6 grid grid-cols-2 gap-3">
-                        <div className="rounded-3xl bg-white p-4 shadow-sm border border-slate-200">
-                          <p className="text-sm text-slate-500">Buena</p>
-                          <p className="text-2xl font-bold text-emerald-600 mt-2">{statusCounts.Buena}</p>
-                        </div>
-                        <div className="rounded-3xl bg-white p-4 shadow-sm border border-slate-200">
-                          <p className="text-sm text-slate-500">Regular</p>
-                          <p className="text-2xl font-bold text-amber-600 mt-2">{statusCounts.Regular}</p>
-                        </div>
-                        <div className="rounded-3xl bg-white p-4 shadow-sm border border-slate-200">
-                          <p className="text-sm text-slate-500">Mala</p>
-                          <p className="text-2xl font-bold text-orange-600 mt-2">{statusCounts.Mala}</p>
-                        </div>
-                        <div className="rounded-3xl bg-white p-4 shadow-sm border border-slate-200">
-                          <p className="text-sm text-slate-500">Cerrada</p>
-                          <p className="text-2xl font-bold text-red-600 mt-2">{statusCounts.Cerrada}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Barras de progreso */}
-                    <div className="rounded-3xl bg-white p-4 shadow-sm border border-slate-200">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Evolución de los datos</p>
-                          <p className="text-lg font-semibold text-slate-950 mt-2">Estado de rutas</p>
-                        </div>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{reports.length} reportes</span>
-                      </div>
-                      <div className="mt-6 space-y-4">
-                        {statusData.map((item) => {
-                          const width = reports.length ? Math.round((item.value / reports.length) * 100) : 0;
-                          return (
-                            <div key={item.label} className="space-y-2">
-                              <div className="flex items-center justify-between text-sm text-slate-500">
-                                <span>{item.label}</span>
-                                <span className="font-semibold text-slate-900">{item.value}</span>
-                              </div>
-                              <div className="h-3 rounded-full bg-slate-200 overflow-hidden">
-                                <div className={`${item.color} h-full rounded-full`} style={{ width: `${width}%` }} />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
+              {/* Gráficas */}
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className="vidrio-claro p-8">
+                  <h3 className="font-bold text-carbon-900 mb-6">Reportes: aprobados vs pendientes</h3>
+                  <GraficaDona aprobados={reportesAprobados} pendientes={reportesPendientes} />
                 </div>
-
-                {/* Panel derecho */}
-                <div className="premium-panel bg-white rounded-3xl p-5 shadow-sm border border-slate-200 space-y-5">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Actividad reciente</p>
-                      <h2 className="text-2xl font-bold text-slate-950 mt-2">Información clave</h2>
-                    </div>
-                    <button className="rounded-3xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition">Actualizar</button>
-                  </div>
-
-                  <div className="space-y-4">
-                    {/* Últimos usuarios */}
-                    <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm uppercase tracking-[0.18em] text-slate-500">Últimos usuarios registrados</p>
-                        <span className="text-xs uppercase tracking-[0.18em] text-slate-400">Activo</span>
-                      </div>
-                      <div className="mt-4 grid gap-3">
-                        {users.slice(0, 4).map(u => (
-                          <div key={u.email} className="flex items-center justify-between rounded-3xl bg-slate-50 p-4 border border-slate-200">
-                            <div>
-                              <p className="font-semibold text-slate-900">{u.name || u.email}</p>
-                              <p className="text-xs text-slate-500">{u.email}</p>
-                            </div>
-                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${u.blocked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>{u.blocked ? 'Bloqueado' : 'Activo'}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Informes recientes */}
-                    <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm uppercase tracking-[0.18em] text-slate-500">Informes recientes</p>
-                        <button className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition">Ver todos</button>
-                      </div>
-                      <div className="mt-4 space-y-3">
-                        {reports.slice(0, 4).map(r => (
-                          <div key={r.id} className="rounded-3xl bg-slate-50 p-4 border border-slate-200">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="font-semibold text-slate-900">{r.title}</p>
-                                <p className="text-xs text-slate-500 mt-1">{r.location || 'Ubicación no definida'}</p>
-                              </div>
-                              <span className={`text-[11px] rounded-full px-3 py-1 font-semibold ${r.approved ? 'bg-emerald-100 text-emerald-700' : r.flagged ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                {r.approved ? 'Aprobado' : r.flagged ? 'Falso' : 'Pendiente'}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                <div className="vidrio-claro p-8">
+                  <h3 className="font-bold text-carbon-900 mb-6">Estado de las vías</h3>
+                  <GraficaBarras datos={barrasVias} />
                 </div>
-              </section>
+              </div>
+
+              <div className="vidrio-claro p-8">
+                <h3 className="font-bold text-carbon-900 mb-6">Reportes por estado</h3>
+                <GraficaBarrasH datos={barrasReportes} />
+              </div>
             </div>
           )}
 
-          {/* ─── INFORMES ─── */}
-          {tab === 'informes' && (
-            <section className="space-y-6">
-              <div className="rounded-3xl bg-white p-5 shadow-sm border border-slate-200">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Gestión de informes</p>
-                    <h2 className="text-3xl font-bold text-slate-950 mt-2">Informes activos</h2>
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">{reports.length} reportes</span>
-                </div>
-              </div>
-
-              <div className="grid gap-4">
-                {reports.length ? reports.map(report => (
-                  <div key={report.id} className="rounded-3xl bg-white p-5 shadow-sm border border-slate-200">
-                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{report.status}</p>
-                        <h3 className="text-xl font-semibold text-slate-950 mt-2">{report.title}</h3>
-                        <p className="text-sm text-slate-600 mt-2">{report.location || report.message}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button onClick={() => setSelectedReport(report)} className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition">Ver detalles</button>
-                        <button onClick={() => handleApproveReport(report.id)} className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 transition">Aprobar</button>
-                        <button onClick={() => handleFlagReport(report.id)} className="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-600 transition">Marcar</button>
-                        <button onClick={() => handleDeleteReport(report.id)} className="rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 transition">Eliminar</button>
-                      </div>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="rounded-3xl bg-slate-50 p-8 text-center text-slate-600">No hay reportes registrados aún.</div>
-                )}
-              </div>
-            </section>
-          )}
-
-          {/* ─── USUARIOS ─── */}
-          {tab === 'usuarios' && (
-            <section className="space-y-6">
-              <div className="rounded-3xl bg-white p-5 shadow-sm border border-slate-200">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Usuarios</p>
-                    <h2 className="text-3xl font-bold text-slate-950 mt-2">Base de datos de usuarios</h2>
-                  </div>
-                  <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700">{users.length} usuarios</span>
-                </div>
-              </div>
-
-              <div className="grid gap-4">
-                {users.length ? users.map(user => (
-                    <div key={user.email} className="rounded-3xl bg-white p-5 shadow-sm border border-slate-200 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-semibold text-slate-900">{user.name || user.email}</p>
-                      <p className="text-xs text-slate-500">{user.email}</p>
-                      <p className="text-xs text-slate-500 mt-1">Rol: {user.role || 'usuario'}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${user.blocked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>{user.blocked ? 'Bloqueado' : 'Activo'}</span>
-                      <button onClick={() => handleBlockUser(user.email)} className="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-600 transition">{user.blocked ? 'Desbloquear' : 'Bloquear'}</button>
-                      <button onClick={() => handleDeleteUser(user.email)} className="rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 transition">Eliminar</button>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="rounded-3xl bg-slate-50 p-8 text-center text-slate-600">Aún no hay usuarios registrados.</div>
-                )}
-              </div>
-            </section>
-          )}
-
-          {/* ─── CARRETERAS ─── */}
-          {tab === 'carreteras' && (
-            <section className="space-y-6">
-              <div className="rounded-3xl bg-white p-5 shadow-sm border border-slate-200">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Carreteras</p>
-                    <h2 className="text-3xl font-bold text-slate-950 mt-2">Condición de las vías</h2>
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">{roads.length} vías monitorizadas</span>
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                {roads.map(road => {
-                  const colors = {
-                    Buena: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-                    Regular: 'bg-amber-50 border-amber-200 text-amber-700',
-                    Mala: 'bg-orange-50 border-orange-200 text-orange-700',
-                    Cerrada: 'bg-red-50 border-red-200 text-red-700'
-                  };
+          {/* ===== REPORTES ===== */}
+          {seccion === "reportes" && (
+            <div className="vidrio-claro p-6 md:p-8">
+              <h3 className="text-2xl font-extrabold text-carbon-900 mb-1">Reportes de la comunidad</h3>
+              <p className="text-sm text-slate-500 mb-6">Aprueba o elimina los reportes. Los cambios se guardan en la base de datos.</p>
+              <div className="space-y-3">
+                {reportes.length === 0 && <p className="text-center py-8 text-slate-500">Todavía no hay reportes.</p>}
+                {reportes.map(function (r) {
                   return (
-                    <div key={road.id} className={`rounded-3xl border p-5 shadow-sm ${colors[road.status] || 'border-slate-200 bg-slate-50 text-slate-900'}`}>
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <h3 className="text-xl font-semibold">{road.title}</h3>
-                          <p className="text-xs uppercase tracking-[0.25em] mt-2">{road.from} → {road.to}</p>
+                    <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-white/55 border border-white/70 p-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={claseBadge(r.estado)}>{r.estado}</span>
+                          <span className={"badge " + (r.aprobado ? "badge-buena" : "badge-regular")}>{r.aprobado ? "Aprobado" : "Pendiente"}</span>
                         </div>
-                        <span className="rounded-full px-3 py-1 text-xs font-semibold uppercase">{road.status}</span>
+                        <p className="font-semibold text-carbon-900 mt-2">{r.titulo}</p>
+                        <p className="text-sm text-slate-500">{r.ubicacion || "Sin ubicación"} · {r.autor || "Ciudadano"}</p>
                       </div>
-                      <p className="mt-4 text-sm text-slate-700">{road.desc}</p>
-                      <div className="mt-6 grid grid-cols-3 gap-3 text-sm">
-                        <div className="rounded-2xl bg-white p-3">Humedad<br /><strong>{road.humidity ?? 'N/A'}%</strong></div>
-                        <div className="rounded-2xl bg-white p-3">Temperatura<br /><strong>{road.temperature ?? 'N/A'}°C</strong></div>
-                        <div className="rounded-2xl bg-white p-3">Precip<br /><strong>{road.precip ?? 'N/A'}%</strong></div>
+                      <div className="flex gap-2">
+                        {!r.aprobado && (
+                          <button onClick={function () { onAprobarReporte(r.id); }} className="rounded-lg bg-selva-100 text-selva-700 px-4 py-2 text-sm font-semibold hover:bg-selva-200 transition">Aprobar</button>
+                        )}
+                        <button onClick={function () { confirmarEliminar(r.id); }} className="rounded-lg bg-red-50 text-red-700 px-4 py-2 text-sm font-semibold hover:bg-red-100 transition">Eliminar</button>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </section>
+            </div>
           )}
 
-          {/* ─── ALERTAS ─── */}
-          {tab === 'alertas' && (
-            <section className="space-y-6">
-              <div className="rounded-3xl bg-white p-5 shadow-sm border border-slate-200">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Alertas</p>
-                    <h2 className="text-3xl font-bold text-slate-950 mt-2">Últimas alertas</h2>
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">{flaggedReports.length} marcadas</span>
-                </div>
-              </div>
-
-              <div className="grid gap-4">
-                {reports.filter(r => r.flagged || !r.approved).length ? reports.filter(r => r.flagged || !r.approved).map(report => (
-                  <div key={report.id} className="rounded-3xl bg-white p-5 shadow-sm border border-slate-200">
-                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          {/* ===== VIAS ===== */}
+          {seccion === "vias" && (
+            <div className="vidrio-claro p-6 md:p-8">
+              <h3 className="text-2xl font-extrabold text-carbon-900 mb-6">Estado de las vías</h3>
+              <div className="space-y-2">
+                {vias.map(function (v) {
+                  return (
+                    <div key={v.id} className="flex items-center justify-between gap-4 rounded-2xl bg-white/55 border border-white/70 p-4">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{report.status}</p>
-                        <h3 className="text-xl font-semibold text-slate-950 mt-2">{report.title}</h3>
-                        <p className="text-sm text-slate-600 mt-2">{report.location || report.message}</p>
+                        <p className="font-semibold text-carbon-900">{v.titulo}</p>
+                        <p className="text-xs text-slate-500">{v.desde} → {v.hasta} · {v.km}</p>
                       </div>
-                      <div className="space-y-2 text-right">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${report.flagged ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                          {report.flagged ? 'Falso' : 'Pendiente'}
-                        </span>
-                        <div>
-                          <button onClick={() => handleApproveReport(report.id)} className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 transition">Aprobar</button>
-                        </div>
-                      </div>
+                      <span className={claseBadge(v.estado)}>{v.estado}</span>
                     </div>
-                  </div>
-                )) : (
-                  <div className="rounded-3xl bg-slate-50 p-8 text-center text-slate-600">No hay alertas pendientes.</div>
-                )}
+                  );
+                })}
               </div>
-            </section>
+            </div>
           )}
 
-        </div>
-      </main>
-
-      {selectedReport && <window.ReportDetailsModal report={selectedReport} onClose={() => setSelectedReport(null)} />}
+          {/* ===== ALERTAS ===== */}
+          {seccion === "alertas" && (
+            <div className="vidrio-claro p-6 md:p-8">
+              <h3 className="text-2xl font-extrabold text-carbon-900 mb-6">Alertas de sensores (GeoSentinel)</h3>
+              <div className="space-y-3">
+                {alertas.length === 0 && <p className="text-center py-8 text-slate-500">No hay alertas registradas.</p>}
+                {alertas.map(function (a) {
+                  return (
+                    <div key={a.id} className="flex items-center justify-between gap-4 rounded-2xl bg-red-50/70 border border-red-100 p-4">
+                      <div>
+                        <p className="font-semibold text-carbon-900">{a.ubicacion}</p>
+                        <p className="text-sm text-slate-500">{a.resumen}</p>
+                      </div>
+                      <span className="badge badge-cerrada">Riesgo {a.nivelRiesgo}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
-}
+};

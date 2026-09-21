@@ -1,0 +1,62 @@
+{
+  "usuarios": [
+    {
+      "nombre": "Administrador",
+      "email": "admin@viaschoco.com",
+      "clave": "admin123",
+      "rol": "admin",
+      "bloqueado": false
+    },
+    {
+      "nombre": "Usuario Demo",
+      "email": "usuario@viaschoco.com",
+      "clave": "12345",
+      "rol": "usuario",
+      "bloqueado": false
+    }
+  ],
+  "reportes": [
+    {
+      "id": 1001,
+      "via": "Vía Tadó - Certeguí",
+      "titulo": "Vía Tadó - Certeguí",
+      "estado": "Mala",
+      "ubicacion": "Km 20 aprox.",
+      "descripcion": "Derrumbe parcial sobre la calzada tras las lluvias. Paso a un solo carril.",
+      "recomendacion": "Conducir con precaución y reducir velocidad.",
+      "autor": "Usuario Demo",
+      "lat": 5.2637,
+      "lng": -76.5595,
+      "aprobado": true,
+      "fecha": "2026-09-18T14:30:00.000Z"
+    },
+    {
+      "id": 1002,
+      "via": "Vía Quibdó - Istmina - Condoto",
+      "titulo": "Vía Quibdó - Istmina - Condoto",
+      "estado": "Buena",
+      "ubicacion": "Sector Istmina",
+      "descripcion": "Vía despejada y en buen estado, tránsito normal.",
+      "recomendacion": "Sin novedad.",
+      "autor": "Usuario Demo",
+      "lat": 5.1589,
+      "lng": -76.6521,
+      "aprobado": true,
+      "fecha": "2026-09-19T08:15:00.000Z"
+    }
+  ],
+  "alertas": [
+    {
+      "id": 2001,
+      "sensorId": "S-01",
+      "ubicacion": "Sensor Km 145 Quibdó - Medellín",
+      "estado": "Mala",
+      "nivelRiesgo": 74,
+      "resumen": "Sensor detecta alta humedad e inclinación del terreno. Riesgo de deslizamiento.",
+      "fuente": "GeoSentinel",
+      "fecha": "2026-09-19T18:40:00.000Z",
+      "lat": 6.1,
+      "lng": -76.05
+    }
+  ]
+}

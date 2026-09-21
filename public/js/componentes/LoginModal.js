@@ -1,47 +1,53 @@
-window.LoginModal = function LoginModal({ onClose, onShowRegister, onLogin }) {
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const form = e.target;
-    const email = form.email.value.trim();
-    const pass = form.password.value.trim();
+// ============================================================
+//  VENTANA DE ACCESO DE ADMINISTRADOR
+//  Solo la usan los administradores. Se abre desde el punto
+//  discreto que esta en el pie de pagina.
+// ============================================================
 
-    if (!email || !pass) {
-      alert('Ingresa correo y contraseña');
+window.LoginModal = function LoginModal(props) {
+  var onClose = props.onClose;
+  var onLogin = props.onLogin; // recibe (email, clave) y devuelve true o un mensaje
+
+  async function enviar(e) {
+    e.preventDefault();
+    var email = e.target.email.value.trim();
+    var clave = e.target.password.value.trim();
+
+    if (!email || !clave) {
+      alert("Ingresa tu correo y contraseña.");
       return;
     }
 
-    const result = await onLogin(email, pass);
-    if (result !== true) {
-      alert(result || 'Correo o contraseña incorrectos. Verifica tus datos o regístrate primero.');
-      return;
+    var resultado = await onLogin(email, clave);
+    if (resultado !== true) {
+      alert(resultado || "No se pudo iniciar sesión.");
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start md:items-center justify-center z-50 p-4">
-      <div className="bg-gray-50 rounded-3xl shadow-2xl w-full max-w-md p-8 relative mt-12 md:mt-0" style={{ backgroundColor: '#f8fafc' }}>
-        <button type="button" onClick={onClose} className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition">✕</button>
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#030213' }}>Iniciar sesión</h2>
-        <p className="text-sm text-slate-600 mb-6">Usa tu correo y contraseña para acceder al panel de alertas y reportes.</p>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="fondo-modal">
+      <div className="caja-modal max-w-md p-8 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 w-9 h-9 rounded-full bg-arena-100 text-selva-800 hover:bg-arena-200 transition">✕</button>
+
+        <div className="w-12 h-12 rounded-2xl bg-selva-700 text-white flex items-center justify-center text-xl mb-4">🔒</div>
+        <h2 className="text-2xl font-extrabold text-carbon-900 mb-1">Acceso administrador</h2>
+        <p className="text-sm text-slate-500 mb-6">Área privada. Solo para el equipo de Vías Chocó.</p>
+
+        <form onSubmit={enviar} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-semibold mb-2" style={{ color: '#030213' }}>Correo electrónico</label>
-            <input id="email" name="email" type="email" autoComplete="username" placeholder="tu@email.com" className="w-full px-4 py-3 border rounded-2xl focus:outline-none focus:ring-2 transition" style={{ borderColor: '#bfdbfe', color: '#1a1a1a', backgroundColor: 'white' }} />
+            <label htmlFor="email" className="etiqueta-campo">Correo</label>
+            <input id="email" name="email" type="email" placeholder="admin@viaschoco.com" className="campo" autoComplete="username" />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-semibold mb-2" style={{ color: '#030213' }}>Contraseña</label>
-            <input id="password" name="password" type="password" autoComplete="current-password" placeholder="••••••••" className="w-full px-4 py-3 border rounded-2xl focus:outline-none focus:ring-2 transition" style={{ borderColor: '#bfdbfe', color: '#1a1a1a', backgroundColor: 'white' }} />
+            <label htmlFor="password" className="etiqueta-campo">Contraseña</label>
+            <input id="password" name="password" type="password" placeholder="••••••••" className="campo" autoComplete="current-password" />
           </div>
-          <div className="flex gap-3 justify-end pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-3 font-semibold rounded-2xl transition" style={{ color: '#717182', backgroundColor: '#efefff' }}>Cancelar</button>
-            <button type="submit" className="px-6 py-3 text-white font-bold rounded-2xl transition bg-slate-950 hover:bg-slate-800">Entrar</button>
+          <div className="flex gap-3 justify-end pt-2">
+            <button type="button" onClick={onClose} className="boton-secundario">Cancelar</button>
+            <button type="submit" className="boton-primario">Entrar al panel</button>
           </div>
         </form>
-        <p className="text-center text-sm mt-5" style={{ color: '#717182' }}>
-          ¿No tienes cuenta?{' '}
-          <button type="button" onClick={onShowRegister} className="font-semibold hover:underline" style={{ color: '#2563eb' }}>Regístrate aquí</button>
-        </p>
       </div>
     </div>
   );
-}
+};

@@ -1,187 +1,254 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const http = require('http');
-const socketIO = require('socket.io');
-const path = require('path');
-const mqtt = require('mqtt');
-const prisma = require('./services/prismaClient');
+// ============================================================
+//  SERVIDOR DE VIAS CHOCO
+//  Servidor sencillo hecho con Express.
+//  Guarda usuarios, reportes y alertas en un archivo JSON.
+//  Para correrlo:   npm install   y luego   npm start
+// ============================================================
 
-const authRoutes = require('./routes/auth');
-const usersRoutes = require('./routes/users');
-const reportsRoutes = require('./routes/reports');
-const devicesRoutes = require('./routes/devices');
-const adminDevicesRoutes = require('./routes/admin/devices');
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const { leerBaseDeDatos, guardarBaseDeDatos } = require("./basededatos");
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIO(server, { cors: { origin: '*' } });
-const PORT = process.env.PORT || 3001;
+const PUERTO = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// --- Middlewares (configuracion basica) ---
+app.use(cors()); // permite que el frontend pueda pedir datos
+app.use(express.json({ limit: "25mb" })); // 25mb para que quepan fotos/videos
 
-// Store io instance in app for routes
-app.set('io', io);
+// Tambien servimos el frontend (la carpeta public) desde el mismo servidor
+app.use(express.static(path.join(__dirname, "..", "public")));
 
-// Servir archivos estáticos (frontend)
-app.use(express.static(path.join(__dirname, '../public')));
-
-// Ruta raíz para servir index.html (SPA)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
-});
-
-// Rutas API
-app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/reports', reportsRoutes);
-app.use('/api/devices/sensor', devicesRoutes);
-app.use('/api/admin/devices', adminDevicesRoutes);
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), database: 'postgres' });
-});
-
-// MQTT Client (conecta si está disponible)
-let mqttClient = null;
-if (process.env.MQTT_BROKER_URL) {
-  try {
-    mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL, {
-      username: process.env.MQTT_USERNAME,
-      password: process.env.MQTT_PASSWORD,
-      reconnectPeriod: 5000
-    });
-
-    mqttClient.on('connect', () => {
-      console.log('✓ Conectado a MQTT broker');
-      const topicPrefix = process.env.MQTT_TOPIC_PREFIX || 'viaschoco/';
-      mqttClient.subscribe(`${topicPrefix}devices/+/readings`, (err) => {
-        if (!err) console.log(`✓ Suscrito a ${topicPrefix}devices/+/readings`);
-      });
-    });
-
-    mqttClient.on('message', async (topic, message) => {
-      try {
-        const data = JSON.parse(message.toString());
-        const topicParts = topic.split('/');
-        const deviceId = topicParts[2];
-
-        if (data.readings && Array.isArray(data.readings)) {
-          const { storeSensorReading } = require('./services/sensorReadings');
-          const { createAlertIfNeeded } = require('./services/alertEngine');
-
-          for (const reading of data.readings) {
-            await storeSensorReading({
-              deviceId,
-              measurementType: reading.type || reading.measurementType,
-              value: reading.value,
-              unit: reading.unit,
-              readingUuid: reading.uuid
-            });
-          }
-
-          const device = await prisma.device.findUnique({
-            where: { deviceId }
-          });
-
-          if (device) {
-            await createAlertIfNeeded(device.id, io);
-            io.emit('sensor:reading', { deviceId, readings: data.readings, timestamp: new Date() });
-          }
-        }
-      } catch (error) {
-        console.error('Error procesando mensaje MQTT:', error.message);
-      }
-    });
-
-    mqttClient.on('error', (err) => {
-      console.warn('⚠ Error MQTT:', err.message);
-    });
-  } catch (error) {
-    console.warn('⚠ MQTT no configurado:', error.message);
-  }
+// Funcion pequena para crear un id nuevo (numero unico)
+function crearId() {
+  return Date.now();
 }
 
-// Socket.IO - Conexiones en tiempo real
-io.on('connection', (socket) => {
-  console.log(`✅ Cliente frontend conectado: ${socket.id}`);
-
-  socket.on('subscribe:alerts', async () => {
-    const { getActiveAlerts } = require('./services/alertEngine');
-    const alerts = await getActiveAlerts();
-    socket.emit('alerts:all', alerts);
-  });
-
-  socket.on('subscribe:devices', async () => {
-    const devices = await prisma.device.findMany();
-    socket.emit('devices:all', devices);
-  });
-
-  socket.on('subscribe:readings', async () => {
-    const readings = await prisma.sensorReading.findMany({
-      orderBy: { timestamp: 'desc' },
-      take: 100
-    });
-    socket.emit('readings:latest', readings);
-  });
-
-  socket.on('disconnect', () => {
-    console.log(`❌ Cliente desconectado: ${socket.id}`);
-  });
+// ============================================================
+//  RUTA DE SALUD (para saber si el servidor esta encendido)
+// ============================================================
+app.get("/api/salud", function (req, res) {
+  res.json({ estado: "ok", mensaje: "Servidor de Vias Choco funcionando" });
 });
 
-// Fallback para SPA
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({ error: 'Endpoint no encontrado' });
-  }
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+// ============================================================
+//  REPORTES
+// ============================================================
+
+// Listar todos los reportes
+app.get("/api/reportes", function (req, res) {
+  const datos = leerBaseDeDatos();
+  res.json(datos.reportes);
 });
 
-// Inicializar base de datos (crear tablas si no existen)
-async function initializeDatabase() {
-  try {
-    console.log('🔧 Inicializando base de datos con Prisma...');
-    // Prisma maneja las migraciones automáticamente
-    const userCount = await prisma.user.count();
-    console.log(`✓ Conexión a base de datos OK (${userCount} usuarios)`);
-  } catch (error) {
-    console.error('❌ Error inicializando base de datos:', error.message);
-    process.exit(1);
-  }
-}
+// Crear un reporte nuevo
+app.post("/api/reportes", function (req, res) {
+  const datos = leerBaseDeDatos();
 
-// Iniciar servidor
-async function startServer() {
-  await initializeDatabase();
+  const nuevoReporte = {
+    id: crearId(),
+    via: req.body.via || "",
+    titulo: req.body.titulo || "Reporte",
+    estado: req.body.estado || "Regular",
+    zona: req.body.zona || "",
+    ubicacion: req.body.ubicacion || "",
+    descripcion: req.body.descripcion || "",
+    recomendacion: req.body.recomendacion || "",
+    autor: req.body.autor || "Usuario",
+    archivos: req.body.archivos || [],
+    lat: req.body.lat || null,
+    lng: req.body.lng || null,
+    // El frontend envia el reporte ya aprobado para que se vea al instante.
+    // Si algun dia se quiere moderar, basta con cambiar esto a false.
+    aprobado: req.body.aprobado === true,
+    fecha: new Date().toISOString(),
+  };
 
-  server.listen(PORT, () => {
-    console.log(`\n${'='.repeat(60)}`);
-    console.log(`🚀 Servidor Vías del Chocó iniciado`);
-    console.log(`🌐 Puerto: ${PORT}`);
-    console.log(`📡 WebSocket (Socket.io): ACTIVO`);
-    console.log(`💾 Base de datos: PostgreSQL (Prisma)`);
-    if (mqttClient) {
-      console.log(`📨 MQTT: CONECTADO`);
+  datos.reportes.unshift(nuevoReporte); // lo agregamos al inicio de la lista
+  guardarBaseDeDatos(datos);
+  res.status(201).json(nuevoReporte);
+});
+
+// Actualizar un reporte (por ejemplo aprobarlo)
+app.put("/api/reportes/:id", function (req, res) {
+  const datos = leerBaseDeDatos();
+  const id = Number(req.params.id);
+
+  let encontrado = null;
+  datos.reportes = datos.reportes.map(function (reporte) {
+    if (reporte.id === id) {
+      encontrado = Object.assign(reporte, req.body); // mezclamos los cambios
+      return encontrado;
     }
-    console.log(`${'='.repeat(60)}\n`);
+    return reporte;
   });
-}
 
-startServer();
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Apagando servidor...');
-  if (mqttClient) {
-    mqttClient.end();
+  if (!encontrado) {
+    return res.status(404).json({ mensaje: "Reporte no encontrado" });
   }
-  await prisma.$disconnect();
-  process.exit(0);
+
+  guardarBaseDeDatos(datos);
+  res.json(encontrado);
+});
+
+// Eliminar un reporte
+app.delete("/api/reportes/:id", function (req, res) {
+  const datos = leerBaseDeDatos();
+  const id = Number(req.params.id);
+
+  const cantidadAntes = datos.reportes.length;
+  datos.reportes = datos.reportes.filter(function (reporte) {
+    return reporte.id !== id;
+  });
+
+  if (datos.reportes.length === cantidadAntes) {
+    return res.status(404).json({ mensaje: "Reporte no encontrado" });
+  }
+
+  guardarBaseDeDatos(datos);
+  res.json({ mensaje: "Reporte eliminado" });
+});
+
+// ============================================================
+//  USUARIOS
+// ============================================================
+
+// Listar usuarios (sin mostrar la contrasena)
+app.get("/api/usuarios", function (req, res) {
+  const datos = leerBaseDeDatos();
+  const usuariosSinClave = datos.usuarios.map(function (usuario) {
+    return {
+      nombre: usuario.nombre,
+      email: usuario.email,
+      rol: usuario.rol,
+      bloqueado: usuario.bloqueado,
+    };
+  });
+  res.json(usuariosSinClave);
+});
+
+// Registrar un usuario nuevo
+app.post("/api/usuarios/registro", function (req, res) {
+  const datos = leerBaseDeDatos();
+  const email = String(req.body.email || "").toLowerCase();
+  const nombre = req.body.nombre || "";
+  const clave = req.body.clave || "";
+
+  if (!nombre || !email || !clave) {
+    return res.status(400).json({ mensaje: "Faltan datos" });
+  }
+
+  // Revisar que el correo no este repetido
+  const yaExiste = datos.usuarios.find(function (usuario) {
+    return usuario.email === email;
+  });
+  if (yaExiste) {
+    return res.status(400).json({ mensaje: "Ese correo ya esta registrado" });
+  }
+
+  // Si el correo termina en .admin lo marcamos como administrador
+  const esAdmin = email.endsWith(".admin");
+
+  const nuevoUsuario = {
+    nombre: nombre,
+    email: email,
+    clave: clave,
+    rol: esAdmin ? "admin" : "usuario",
+    bloqueado: false,
+  };
+
+  datos.usuarios.push(nuevoUsuario);
+  guardarBaseDeDatos(datos);
+
+  res.status(201).json({
+    nombre: nuevoUsuario.nombre,
+    email: nuevoUsuario.email,
+    rol: nuevoUsuario.rol,
+  });
+});
+
+// Iniciar sesion
+app.post("/api/usuarios/login", function (req, res) {
+  const datos = leerBaseDeDatos();
+  const email = String(req.body.email || "").toLowerCase();
+  const clave = req.body.clave || "";
+
+  const usuario = datos.usuarios.find(function (u) {
+    return u.email === email;
+  });
+
+  if (!usuario) {
+    return res.status(404).json({ mensaje: "Correo no registrado" });
+  }
+  if (usuario.bloqueado) {
+    return res.status(403).json({ mensaje: "Esta cuenta esta bloqueada" });
+  }
+  if (usuario.clave !== clave) {
+    return res.status(401).json({ mensaje: "Contrasena incorrecta" });
+  }
+
+  res.json({
+    nombre: usuario.nombre,
+    email: usuario.email,
+    rol: usuario.rol,
+  });
+});
+
+// Actualizar un usuario (bloquear o desbloquear)
+app.put("/api/usuarios/:email", function (req, res) {
+  const datos = leerBaseDeDatos();
+  const email = String(req.params.email || "").toLowerCase();
+
+  let encontrado = null;
+  datos.usuarios = datos.usuarios.map(function (usuario) {
+    if (usuario.email === email) {
+      encontrado = Object.assign(usuario, req.body);
+      return encontrado;
+    }
+    return usuario;
+  });
+
+  if (!encontrado) {
+    return res.status(404).json({ mensaje: "Usuario no encontrado" });
+  }
+
+  guardarBaseDeDatos(datos);
+  res.json({ nombre: encontrado.nombre, email: encontrado.email, bloqueado: encontrado.bloqueado });
+});
+
+// Eliminar un usuario
+app.delete("/api/usuarios/:email", function (req, res) {
+  const datos = leerBaseDeDatos();
+  const email = String(req.params.email || "").toLowerCase();
+
+  const cantidadAntes = datos.usuarios.length;
+  datos.usuarios = datos.usuarios.filter(function (usuario) {
+    return usuario.email !== email;
+  });
+
+  if (datos.usuarios.length === cantidadAntes) {
+    return res.status(404).json({ mensaje: "Usuario no encontrado" });
+  }
+
+  guardarBaseDeDatos(datos);
+  res.json({ mensaje: "Usuario eliminado" });
+});
+
+// ============================================================
+//  ALERTAS (sensores / GeoSentinel)
+// ============================================================
+app.get("/api/alertas", function (req, res) {
+  const datos = leerBaseDeDatos();
+  res.json(datos.alertas || []);
+});
+
+// ============================================================
+//  ENCENDER EL SERVIDOR
+// ============================================================
+app.listen(PUERTO, function () {
+  console.log("====================================");
+  console.log("  Servidor de Vias Choco encendido");
+  console.log("  http://localhost:" + PUERTO);
+  console.log("====================================");
 });

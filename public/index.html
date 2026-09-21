@@ -3,40 +3,86 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#030213" />
-  <meta name="robots" content="index, follow" />
-  <meta name="description" content="Vías del Chocó: plataforma colaborativa para reportes de estado de carreteras en tiempo real." />
-  <meta name="keywords" content="Vias del Choco, reporte de carreteras, estado de vias, transito, Choco, Colombia" />
-  <link rel="canonical" href="https://tu-dominio.com/" />
+  <meta name="theme-color" content="#123422" />
+  <meta name="description" content="Vías del Chocó: plataforma colaborativa para reportes del estado de las carreteras en tiempo real." />
+  <title>Vías del Chocó · Información vial en tiempo real</title>
+
+  <!-- Icono -->
   <link rel="icon" type="image/png" href="img/logoviaa.png" />
-  <title>Vias del Choco - Informacion en Tiempo Real</title>
+
+  <!-- Fuentes de Google -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet" />
+
+  <!-- Estilos propios -->
   <link rel="stylesheet" href="estilos/estilos.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Mapa (Leaflet) -->
+  <link rel="stylesheet" href="vendor/leaflet.css" />
+
+  <!-- Tailwind CSS (desde CDN) + configuracion de colores propios -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+  <script>
+    // Aqui definimos los colores de la marca "Vias Choco".
+    // Usamos verdes de selva y tonos arena porque el Choco es una
+    // region de mucha naturaleza, rios y lluvia.
+    // (El "if" es por si el CDN de Tailwind aun no ha cargado.)
+    if (window.tailwind) tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            selva: {
+              50: "#f0f7f2", 100: "#d9ecdf", 200: "#b5d9c2", 300: "#84be9b",
+              400: "#4f9d6f", 500: "#2f7d50", 600: "#1f6440", 700: "#1a5035",
+              800: "#17402b", 900: "#123422"
+            },
+            arena: {
+              50: "#faf7f0", 100: "#f3ecdd", 200: "#e7d8bb", 300: "#d8be90",
+              400: "#c9a468", 500: "#bd8f4c", 600: "#a5753f", 700: "#845a35",
+              800: "#6d4a31", 900: "#5c3f2c"
+            },
+            carbon: { 700: "#26332c", 800: "#1a241e", 900: "#111a15" }
+          },
+          fontFamily: {
+            sans: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
+            display: ["Fraunces", "Georgia", "serif"]
+          }
+        }
+      }
+    };
+  </script>
 </head>
-<body class="bg-slate-100">
-  <div id="aplicacion"></div>
 
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<body>
+  <!-- Aqui se dibuja toda la aplicacion de React -->
+  <div id="aplicacion">
+    <div class="pantalla-cargando">
+      <div class="cargando-caja">
+        <div class="cargando-circulo"></div>
+        <h2>Cargando Vías del Chocó...</h2>
+        <p>Un momento por favor.</p>
+      </div>
+    </div>
+  </div>
 
-  <script type="text/babel" data-presets="react" src="js/componentes/Header.js"></script>
-  <script type="text/babel" data-presets="react" src="js/componentes/Footer.js"></script>
-  <script type="text/babel" data-presets="react" src="js/componentes/LoginModal.js"></script>
-  <script type="text/babel" data-presets="react" src="js/componentes/RegisterModal.js"></script>
-  <script type="text/babel" data-presets="react" src="js/componentes/MapComponent.js"></script>
-  <script type="text/babel" data-presets="react" src="js/componentes/ReportDetailsModal.js"></script>
-  <script type="text/babel" data-presets="react" src="js/componentes/AdminPanel.js"></script>
-  <script type="text/babel" data-presets="react" src="js/componentes/AdminPanelClean.js"></script>
-  <script type="text/babel" data-presets="react" src="js/componentes/LoadingOverlay.js"></script>
-  <script type="text/babel" data-presets="react" src="js/paginas/Home.js"></script>
-  <script type="text/babel" data-presets="react" src="js/paginas/Reportes.js"></script>
-  <script type="text/babel" data-presets="react" src="js/paginas/SobreNosotros.js"></script>
-  <script type="text/babel" data-presets="react" src="js/paginas/Legal.js"></script>
-  <script type="text/babel" data-presets="react" src="js/paginas/TerminosCondiciones.js"></script>
-  <script type="text/babel" data-presets="react" src="js/main.js"></script>
+  <!-- Librerias externas -->
+  <script src="vendor/react.development.js"></script>
+  <script src="vendor/react-dom.development.js"></script>
+  <script src="vendor/leaflet.js"></script>
+  <script src="vendor/turf.min.js"></script>
+
+  <!-- Configuracion y datos (JavaScript normal) -->
+  <script src="js/config.js"></script>
+  <script src="js/datos.js"></script>
+  <script src="js/api.js"></script>
+
+  <!--
+    Toda la aplicacion (componentes, paginas y main) va en app.build.js,
+    que se genera con "node compilar.js" a partir de los archivos de
+    js/componentes y js/paginas. Asi la pagina carga rapido, sin tener
+    que compilar en el navegador.
+  -->
+  <script src="app.build.js"></script>
 </body>
 </html>

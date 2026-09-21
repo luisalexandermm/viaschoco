@@ -1,309 +1,124 @@
-# Vías del Chocó
+# Vías del Chocó 🚧🌿
 
-**Plataforma colaborativa para reportes de estado de carreteras en tiempo real en el departamento del Chocó, Colombia.**
+Plataforma web colaborativa para consultar el **estado de las carreteras del Chocó**
+en tiempo real: reportes de la comunidad, alertas de sensores, mapa interactivo,
+clima de las rutas y un panel de administración.
 
-🚨 **Versión 2.0** - Arquitectura completamente rediseñada con PostgreSQL, MQTT en tiempo real y autenticación de dispositivos.
+Hecho con **React (por CDN, sin compilar)** en el frontend y un **backend sencillo
+en Node + Express con base de datos en archivo JSON**.
 
 ---
 
-## 🏗️ Arquitectura
+## 📁 Estructura del proyecto
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Frontend (React)                       [Vercel Static]       │
-│ - Mapa interactivo con Leaflet                              │
-│ - Reportes en tiempo real                                    │
-│ - Dashboard de alertas                                       │
-└─────────────────────────────────────────────────────────────┘
-                            ↕ Socket.io + REST API
-┌─────────────────────────────────────────────────────────────┐
-│ Backend (Node.js/Express) [Railway/Render/Fly]              │
-│ - Autenticación JWT                                          │
-│ - Gestión de dispositivos                                    │
-│ - Motor de alertas en tiempo real                            │
-│ - Conexión MQTT                                              │
-└─────────────────────────────────────────────────────────────┘
-        ↓                   ↓                    ↓
-   PostgreSQL (Neon)   MQTT Broker    Dispositivos en campo
-   (datos históricos)  (sensores)     (ESP32 + SIM/WiFi)
+viaschoco/
+├── public/                 → Frontend (lo que ve el usuario)
+│   ├── index.html
+│   ├── estilos/estilos.css  → Estilos y colores de la marca
+│   ├── img/                 → Logos y fotos del equipo
+│   ├── vendor/              → Librerías (React, Leaflet, Babel...)
+│   └── js/
+│       ├── config.js        → Direcciones y llaves
+│       ├── datos.js         → Vías, noticias y datos demo
+│       ├── api.js           → Habla con el backend (o usa el navegador)
+│       ├── main.js          → Aplicación principal
+│       ├── componentes/     → Header, Footer, Mapa, Modales, Panel admin...
+│       └── paginas/         → Sobre nosotros, Legal, Términos, Cookies...
+│   └── app.build.js         → Código de arriba ya "armado" (lo carga el navegador)
+│
+├── compilar.js             → Junta el código de js/ en app.build.js (opcional)
+│
+├── backend/                → Servidor (Node + Express)
+│   ├── server.js            → Servidor y rutas de la API
+│   ├── basededatos.js       → Lee y guarda el archivo JSON
+│   └── data/db.json         → La base de datos (usuarios, reportes, alertas)
+│
+├── preview.js              → Servidor rápido para ver el frontend
+└── README.md
 ```
 
 ---
 
-## 🚀 Stack Tecnológico
+## ▶️ Cómo correr el proyecto
 
-### Frontend
-- **React 18** - Framework JavaScript
-- **Babel Standalone + CDN** - Sin build
-- **Tailwind CSS** - Estilos responsive
-- **Leaflet** - Mapas interactivos
-- **Socket.io Client** - Tiempo real
-
-### Backend
-- **Node.js + Express** - Servidor API
-- **Prisma ORM** - Base de datos
-- **PostgreSQL (Neon)** - BD relacional
-- **MQTT** - IoT en tiempo real
-- **Socket.io** - WebSockets
-- **JWT** - Autenticación segura
-- **bcrypt** - Hashing de contraseñas
-
-### Despliegue
-- **Vercel** - Frontend estático
-- **Railway/Render/Fly** - Backend
-- **Neon** - PostgreSQL serverless
-- **HiveMQ Cloud / EMQX** - MQTT Broker
-
----
-
-## 📋 Cambios principales (v2.0)
-
-### ✅ Nuevas características
-- **PostgreSQL + Prisma** - Base de datos tipo SQL
-- **Autenticación de dispositivos** - Cada sensor tiene `device_id` + `api_key`
-- **MQTT en tiempo real** - Comunicación IoT estándar
-- **Motor de alertas real** - Evalúa riesgo basado en lecturas
-- **API REST documentada** - Endpoints seguros con autenticación JWT
-- **Roles de usuario** - ADMIN, OPERATOR, USER
-
-### ❌ Eliminado
-- Firebase Admin + Firestore
-- MongoDB + Mongoose
-- Base de datos local JSON
-- Simulador de sensores
-
----
-
-## 🛠️ Instalación rápida
-
-### Requisitos
-- Node.js 18+
-- PostgreSQL (o Neon)
-- Docker (opcional)
-
-### 1. Clonar y setup
+### Opción 1: solo el frontend (más fácil)
 
 ```bash
-git clone https://github.com/tuusuario/vias-choco.git
-cd vias-choco
+npm start
+```
 
-# Backend
+Luego abre en el navegador: **http://localhost:4173**
+
+> El frontend funciona solo, guardando los datos en el navegador (localStorage).
+> No necesitas el backend para probarlo.
+>
+> También puedes abrir directamente `public/index.html` con doble clic:
+> ahora la página carga rápido porque el código ya viene compilado en
+> `app.build.js` (no se compila en el navegador).
+
+### ✏️ Si editas el código del frontend
+
+Los archivos de `js/componentes` y `js/paginas` están escritos con JSX (fácil
+de leer). Después de cambiarlos, vuelve a "armar" el bundle con:
+
+```bash
+node compilar.js
+```
+
+Eso regenera `public/app.build.js`, que es lo que realmente carga el navegador.
+
+### Opción 2: con el backend (base de datos JSON)
+
+```bash
 cd backend
 npm install
-cp .env.example .env  # Editar con tus credenciales
-
-# Migrar base de datos
-npx prisma migrate deploy
-npm run seed  # Opcional: migrar datos de JSON
+npm start
 ```
 
-### 2. Configurar variables de entorno
-
-**backend/.env:**
-```env
-DATABASE_URL="postgresql://user:pass@host/viaschoco"
-JWT_SECRET="tu-secret-muy-seguro"
-ADMIN_EMAIL="admin@viaschoco.test"
-ADMIN_PASSWORD="change-this"
-MQTT_BROKER_URL="mqtt://broker.hivemq.com:1883"
-PORT=3001
-```
-
-### 3. Iniciar servidor
-
-```bash
-npm run dev
-
-# Output esperado:
-# ============================================================
-# 🚀 Servidor Vías del Chocó iniciado
-# 🌐 Puerto: 3001
-# 📡 WebSocket (Socket.io): ACTIVO
-# 💾 Base de datos: PostgreSQL (Prisma)
-# 📨 MQTT: CONECTADO
-# ============================================================
-```
-
-### 4. Verificar funcionamiento
-
-```bash
-curl http://localhost:3001/api/health
-```
+El servidor queda en **http://localhost:3001** y también sirve el frontend.
+Los reportes se guardan en `backend/data/db.json`.
 
 ---
 
-## 📚 Documentación
+## 🚪 Cómo se entra (sin registro)
 
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Descripción técnica completa
-- **[SENSOR_SETUP_GUIDE.md](./SENSOR_SETUP_GUIDE.md)** - Guía para instalar sensores en campo
-- **API Docs** - Disponible en `http://localhost:3001/api-docs` (próximamente)
+Es un sitio **público de reportes**, así que no hay inicio de sesión para la gente:
 
----
+1. Al abrir aparece una pantalla de bienvenida con un control **"Desliza para entrar"**
+   (o el botón "o entra directo"). Al entrar ya puedes ver y crear reportes.
+2. Para reportar solo pones el nombre (opcional) y los datos de la vía.
 
-## 🚨 Sistema de alertas
+### Acceso de administrador (oculto)
 
-Las alertas se generan automáticamente cuando:
+El panel de administrador está escondido en un **punto pequeño** al final del pie
+de página (junto a los íconos de redes). Al hacer clic pide la contraseña:
 
-```
-┌─ Inclinación > 25° ────────────┐
-├─ Lluvia acumulada > 60mm (6h) ─┤
-├─ Humedad del suelo > 85% ──────┤ → Riesgo ≥ 70% → 🚨 ALERTA
-├─ Vibración > 7.5 m/s² ────────┤
-└─ Presión < 970 hPa ───────────┘
-```
+| Rol           | Correo                | Contraseña |
+|---------------|-----------------------|------------|
+| Administrador | `admin@viaschoco.com` | `admin123` |
 
-**Alertas emitidas a:**
-- ✓ Mapa web en tiempo real (Socket.io)
-- ✓ Tabla de alertas activas
-- ✓ Historial en base de datos
+> Cambia esta contraseña antes de publicar el proyecto en internet.
+> El administrador puede aprobar/eliminar reportes y ver el estado de las vías.
 
 ---
 
-## 📡 API Endpoints
+## 🌐 Rutas de la API (backend)
 
-### Autenticación
-```
-POST   /api/auth/login          # Login usuario
-POST   /api/auth/register       # Registro
-GET    /api/auth/me             # Datos del usuario
-```
-
-### Reportes
-```
-GET    /api/reports             # Listar reportes
-POST   /api/reports             # Crear reporte
-GET    /api/reports/:id         # Detalle
-PUT    /api/reports/:id         # Actualizar
-DELETE /api/reports/:id         # Eliminar
-```
-
-### Dispositivos (Admin)
-```
-GET    /api/admin/devices                  # Listar
-POST   /api/admin/devices                  # Registrar
-PUT    /api/admin/devices/:id              # Actualizar
-POST   /api/admin/devices/:id/rotate-key  # Nueva API key
-DELETE /api/admin/devices/:id              # Eliminar
-```
-
-### Lecturas (Sensores)
-```
-POST   /api/devices/sensor/readings        # Enviar lecturas
-GET    /api/devices/sensor/readings        # Historial
-GET    /api/devices/sensor/health          # Estado
-```
+| Método | Ruta                        | Para qué sirve            |
+|--------|-----------------------------|---------------------------|
+| GET    | `/api/salud`                | Ver si el servidor vive   |
+| GET    | `/api/reportes`             | Listar reportes           |
+| POST   | `/api/reportes`             | Crear un reporte          |
+| PUT    | `/api/reportes/:id`         | Aprobar/editar un reporte |
+| DELETE | `/api/reportes/:id`         | Eliminar un reporte       |
+| GET    | `/api/usuarios`             | Listar usuarios           |
+| POST   | `/api/usuarios/registro`    | Registrar usuario         |
+| POST   | `/api/usuarios/login`       | Iniciar sesión            |
+| PUT    | `/api/usuarios/:email`      | Bloquear/desbloquear      |
+| DELETE | `/api/usuarios/:email`      | Eliminar usuario          |
+| GET    | `/api/alertas`              | Listar alertas de sensores|
 
 ---
 
-## 🌍 Despliegue
-
-### Frontend (Vercel)
-```bash
-# Vercel detecta automáticamente /public
-# Solo configurar variable VITE_API_URL
-```
-
-### Backend (Railway)
-```bash
-railway login
-railway link
-railway env RAILWAY_CONTEXT_REGION=us-west # Opcional
-railway up --detach
-```
-
-**Variables en Railway:**
-```
-DATABASE_URL=postgresql://...
-JWT_SECRET=tu-secret
-MQTT_BROKER_URL=mqtt://...
-ADMIN_PASSWORD=...
-```
-
----
-
-## 🔒 Seguridad
-
-- ⚠️ **JWT Secrets** - Cambiar en cada despliegue
-- ⚠️ **API Keys** - Rotarlas regularmente
-- ⚠️ **Database** - Backups diarios
-- ✅ HTTPS obligatorio en producción
-- ✅ CORS configurado por dominio
-- ✅ Rate limiting en endpoints
-
----
-
-## 📊 Base de datos
-
-### Tablas principales
-
-**users** - Gestión de usuarios
-```
-id | name | email | passwordHash | role | blocked | createdAt
-```
-
-**devices** - Sensores registrados
-```
-id | deviceId | name | latitude | longitude | status | apiKeyHash | lastSeenAt
-```
-
-**sensor_readings** - Historial de mediciones
-```
-id | readingUuid | deviceId | measurementType | value | timestamp
-```
-
-**alerts** - Alertas generadas
-```
-id | deviceId | alertType | severity | message | status | createdAt
-```
-
-**reports** - Reportes de usuarios
-```
-id | title | message | location | status | authorId | createdAt
-```
-
----
-
-## 🚀 Roadmap v3.0
-
-- [ ] Dashboard avanzado de analytics
-- [ ] Predicción de riesgos con ML
-- [ ] Integración con drones
-- [ ] App móvil nativa
-- [ ] Notificaciones push
-- [ ] Integración con autoridades viales
-- [ ] Exportación de reportes
-
----
-
-## 🤝 Contribución
-
-1. Fork el proyecto
-2. Crea rama: `git checkout -b feature/AmazingFeature`
-3. Commit: `git commit -m 'Add amazing feature'`
-4. Push: `git push origin feature/AmazingFeature`
-5. Pull Request
-
----
-
-## 📄 Licencia
-
-MIT License - Ver [LICENSE](LICENSE)
-
----
-
-## 👨‍💻 Autor
-
-**Maturana Innovate Tech**
-- 📧 Email: alexandermaturana76@gmail.com
-- 📱 WhatsApp: +57 314 531 2045
-- 📍 Quibdó, Chocó, Colombia
-
----
-
-## 🆘 Soporte
-
-- 📖 [Documentación completa](./ARCHITECTURE.md)
-- 📡 [Guía de sensores](./SENSOR_SETUP_GUIDE.md)
-- 🐛 [Reportar bugs](https://github.com/tuusuario/vias-choco/issues)
-
-**⭐ Si este proyecto te resulta útil, ¡dale una estrella!**
+Hecho por **Luis Alexander Maturana** — Maturana Tech · Quibdó, Chocó 🇨🇴
