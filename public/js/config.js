@@ -15,6 +15,7 @@ window.CONFIG = {
     ? "http://localhost:3001"
     : "https://viaschoco-backend.onrender.com",
 
-  // La clave se configura fuera del frontend publico.
+  // La API key de OpenWeather debe configurarse fuera del repositorio
+  // y no debe guardarse en código fuente.
   OPENWEATHER_API_KEY: "",
 };

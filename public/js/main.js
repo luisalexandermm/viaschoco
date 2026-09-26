@@ -43,10 +43,11 @@ function App() {
 
   // Traer el clima de las dos vías principales usando OpenWeather
   async function cargarClima() {
-    if (!window.CONFIG.OPENWEATHER_API_KEY) {
+    if (!window.CONFIG || !window.CONFIG.OPENWEATHER_API_KEY) {
       setClima({});
       return;
     }
+
     var idsVias = [1, 2]; // Quibdó-Medellín y Quibdó-Pereira
     var resultado = {};
     for (var i = 0; i < idsVias.length; i++) {
