@@ -9,6 +9,8 @@ window.Header = function Header(props) {
   var setShowMenu = props.setShowMenu;
   var onNavigate = props.onNavigate;
   var onReportar = props.onReportar;
+  var canInstall = props.canInstall;
+  var onInstall = props.onInstall;
 
   // Enlaces del menu. Cada uno tiene un color de hover (colores de Vias Choco).
   var enlaces = [
@@ -46,6 +48,7 @@ window.Header = function Header(props) {
 
         {/* Derecha: reportar (compu) + hamburguesa (celular) */}
         <div className="flex items-center gap-2">
+          {canInstall && <button onClick={onInstall} className="boton-instalar hidden sm:inline-flex"><span aria-hidden="true">↓</span> Instalar</button>}
           <button onClick={onReportar} className="boton-primario hidden sm:inline-flex text-sm">+ Reportar</button>
           {/* Botón hamburguesa (solo celular) */}
           <button onClick={function () { setShowMenu(true); }} className="hamburguesa lg:hidden" aria-label="Abrir menú">
@@ -78,6 +81,7 @@ window.Header = function Header(props) {
               </button>
             );
           })}
+          {canInstall && <button onClick={function () { cerrarMenu(); onInstall(); }} className="boton-instalar w-full mt-3"><span aria-hidden="true">↓</span> Instalar aplicación</button>}
           <button onClick={function () { cerrarMenu(); onReportar(); }} className="boton-primario w-full mt-3">+ Reportar</button>
         </nav>
       </div>

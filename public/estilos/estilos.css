@@ -99,6 +99,13 @@ a { text-decoration: none; color: var(--selva-600); }
 .boton-secundario:hover { transform: translateY(-2px); box-shadow: var(--sombra-sm); }
 .boton-fantasma { color: var(--texto); background: transparent; }
 .boton-fantasma:hover { background: var(--arena-100); }
+.boton-instalar {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+  padding: 0.6rem 0.9rem; border: 1px solid var(--borde-fuerte); border-radius: 9999px;
+  color: var(--selva-800); background: var(--superficie); font-size: 0.875rem; font-weight: 700;
+  cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease;
+}
+.boton-instalar:hover { background: var(--arena-50); border-color: var(--selva-400); }
 
 /* ---------- 5. Tarjetas ---------- */
 .tarjeta {

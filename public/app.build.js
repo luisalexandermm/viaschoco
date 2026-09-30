@@ -14,6 +14,8 @@ window.Header = function Header(props) {
   var setShowMenu = props.setShowMenu;
   var onNavigate = props.onNavigate;
   var onReportar = props.onReportar;
+  var canInstall = props.canInstall;
+  var onInstall = props.onInstall;
 
   // Enlaces del menu. Cada uno tiene un color de hover (colores de Vias Choco).
   var enlaces = [{
@@ -73,7 +75,12 @@ window.Header = function Header(props) {
     }, enlace.texto);
   })), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2"
-  }, /*#__PURE__*/React.createElement("button", {
+  }, canInstall && /*#__PURE__*/React.createElement("button", {
+    onClick: onInstall,
+    className: "boton-instalar hidden sm:inline-flex"
+  }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true"
+  }, "↓"), " Instalar"), /*#__PURE__*/React.createElement("button", {
     onClick: onReportar,
     className: "boton-primario hidden sm:inline-flex text-sm"
   }, "+ Reportar"), /*#__PURE__*/React.createElement("button", {
@@ -136,7 +143,15 @@ window.Header = function Header(props) {
       },
       className: "enlace-menu text-left " + enlace.hov
     }, enlace.texto);
-  }), /*#__PURE__*/React.createElement("button", {
+  }), canInstall && /*#__PURE__*/React.createElement("button", {
+    onClick: function () {
+      cerrarMenu();
+      onInstall();
+    },
+    className: "boton-instalar w-full mt-3"
+  }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true"
+  }, "↓"), " Instalar aplicación"), /*#__PURE__*/React.createElement("button", {
     onClick: function () {
       cerrarMenu();
       onReportar();
@@ -1853,7 +1868,7 @@ function App() {
   var [detalle, setDetalle] = React.useState(null);
   var [servidorOk, setServidorOk] = React.useState(false); // ¿el backend responde?
   var [clima, setClima] = React.useState({}); // clima en vivo de algunas vías
-
+  var [installPrompt, setInstallPrompt] = React.useState(null);
   var vias = window.DATOS.vias;
   var noticias = window.DATOS.noticias;
 
@@ -1867,6 +1882,29 @@ function App() {
       setServidorOk(ok);
     });
   }, []);
+  React.useEffect(function () {
+    function actualizarInstalacion() {
+      setInstallPrompt(window.viasChocoInstallPrompt || null);
+    }
+    function limpiarInstalacion() {
+      window.viasChocoInstallPrompt = null;
+      setInstallPrompt(null);
+    }
+    window.addEventListener("viaschoco:installavailable", actualizarInstalacion);
+    window.addEventListener("viaschoco:installed", limpiarInstalacion);
+    actualizarInstalacion();
+    return function () {
+      window.removeEventListener("viaschoco:installavailable", actualizarInstalacion);
+      window.removeEventListener("viaschoco:installed", limpiarInstalacion);
+    };
+  }, []);
+  async function instalarApp() {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    await installPrompt.userChoice;
+    window.viasChocoInstallPrompt = null;
+    setInstallPrompt(null);
+  }
   async function cargarDatos() {
     setReportes(await window.Api.listarReportes());
     setAlertas(await window.Api.listarAlertas());
@@ -1874,7 +1912,7 @@ function App() {
 
   // Traer el clima de las dos vías principales usando OpenWeather
   async function cargarClima() {
-    if (!window.CONFIG.OPENWEATHER_API_KEY) {
+    if (!window.CONFIG || !window.CONFIG.OPENWEATHER_API_KEY) {
       setClima({});
       return;
     }
@@ -2196,7 +2234,9 @@ function App() {
     onNavigate: navegar,
     onReportar: function () {
       setVerReporte(true);
-    }
+    },
+    canInstall: !!installPrompt,
+    onInstall: instalarApp
   }), /*#__PURE__*/React.createElement("main", {
     id: "inicio-seccion",
     className: "max-w-7xl mx-auto px-5 md:px-8 py-14 md:py-16 space-y-24"

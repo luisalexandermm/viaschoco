@@ -57,6 +57,18 @@ Luego abre en el navegador: **http://localhost:4173**
 > ahora la página carga rápido porque el código ya viene compilado en
 > `app.build.js` (no se compila en el navegador).
 
+### Instalar en Android como aplicación
+
+La web es instalable desde Chrome cuando está publicada por HTTPS. En Android,
+abre la dirección de Vías del Chocó en Chrome y toca **Instalar** (o **⋮ →
+Instalar aplicación**). Los archivos propios de la aplicación quedan disponibles
+sin conexión; los reportes del servidor, el clima y otros servicios externos sí
+necesitan internet.
+
+Esto instala la PWA desde el navegador, pero no la publica en Google Play. Para
+aparecer en Play Store hay que empaquetarla como Trusted Web Activity y completar
+el proceso de publicación de Google Play Console.
+
 ### ✏️ Si editas el código del frontend
 
 Los archivos de `js/componentes` y `js/paginas` están escritos con JSX (fácil

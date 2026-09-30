@@ -23,6 +23,7 @@ function App() {
   var [detalle, setDetalle] = React.useState(null);
   var [servidorOk, setServidorOk] = React.useState(false); // ¿el backend responde?
   var [clima, setClima] = React.useState({}); // clima en vivo de algunas vías
+  var [installPrompt, setInstallPrompt] = React.useState(null);
 
   var vias = window.DATOS.vias;
   var noticias = window.DATOS.noticias;
@@ -35,6 +36,26 @@ function App() {
     // Revisar si el backend está encendido (para el indicador del panel)
     window.Api.hayServidor().then(function (ok) { setServidorOk(ok); });
   }, []);
+
+  React.useEffect(function () {
+    function actualizarInstalacion() { setInstallPrompt(window.viasChocoInstallPrompt || null); }
+    function limpiarInstalacion() { window.viasChocoInstallPrompt = null; setInstallPrompt(null); }
+    window.addEventListener("viaschoco:installavailable", actualizarInstalacion);
+    window.addEventListener("viaschoco:installed", limpiarInstalacion);
+    actualizarInstalacion();
+    return function () {
+      window.removeEventListener("viaschoco:installavailable", actualizarInstalacion);
+      window.removeEventListener("viaschoco:installed", limpiarInstalacion);
+    };
+  }, []);
+
+  async function instalarApp() {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    await installPrompt.userChoice;
+    window.viasChocoInstallPrompt = null;
+    setInstallPrompt(null);
+  }
 
   async function cargarDatos() {
     setReportes(await window.Api.listarReportes());
@@ -312,6 +333,8 @@ function App() {
         setShowMenu={setVerMenu}
         onNavigate={navegar}
         onReportar={function () { setVerReporte(true); }}
+        canInstall={!!installPrompt}
+        onInstall={instalarApp}
       />
 
       <main id="inicio-seccion" className="max-w-7xl mx-auto px-5 md:px-8 py-14 md:py-16 space-y-24">

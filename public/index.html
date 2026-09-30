@@ -5,10 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#123422" />
   <meta name="description" content="Vías del Chocó: plataforma colaborativa para reportes del estado de las carreteras en tiempo real." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Vías del Chocó · Información vial en tiempo real</title>
 
   <!-- Icono -->
   <link rel="icon" type="image/png" href="img/logoviaa.png" />
+  <link rel="apple-touch-icon" href="img/pwa-192.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
 
   <!-- Fuentes de Google -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -76,6 +81,7 @@
   <script src="js/config.js"></script>
   <script src="js/datos.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/pwa.js"></script>
 
   <!--
     Toda la aplicacion (componentes, paginas y main) va en app.build.js,
