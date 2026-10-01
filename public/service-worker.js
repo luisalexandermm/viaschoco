@@ -1,8 +1,8 @@
-const CACHE_NAME = "viaschoco-static-v1";
+const CACHE_NAME = "viaschoco-static-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./manifest.webmanifest",
+  "./manifest.webmanifest?v=2",
   "./estilos/estilos.css",
   "./vendor/react.development.js",
   "./vendor/react-dom.development.js",
@@ -15,8 +15,8 @@ const APP_SHELL = [
   "./js/pwa.js",
   "./app.build.js",
   "./img/logoviaa.png",
-  "./img/pwa-192.png",
-  "./img/pwa-512.png"
+  "./img/logoviaa-192.png?v=2",
+  "./img/logoviaa-square.png?v=2"
 ];
 
 self.addEventListener("install", function (event) {
