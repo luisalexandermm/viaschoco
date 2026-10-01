@@ -6,7 +6,12 @@
     "start": "node preview.js",
     "dev": "node preview.js"
   },
-  "keywords": ["vias", "choco", "carreteras", "reportes"],
+  "keywords": [
+    "vias",
+    "choco",
+    "carreteras",
+    "reportes"
+  ],
   "author": "Luis Alexander Maturana",
   "license": "MIT"
 }
